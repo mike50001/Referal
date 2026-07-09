@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+*.db
+.venv/
+venv/
+
+# Файлы контента — не коммитим, кроме README
+content/*
+!content/README.md
