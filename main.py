@@ -24,6 +24,7 @@ async def set_commands(bot: Bot) -> None:
         [
             BotCommand(command="start", description="Запустить бота"),
             BotCommand(command="exchange", description="Оставить заявку на обмен"),
+            BotCommand(command="rate", description="Узнать курс"),
             BotCommand(command="cancel", description="Отменить текущую заявку"),
         ]
     )

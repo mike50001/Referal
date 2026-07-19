@@ -52,6 +52,12 @@ async def cmd_cancel(message: Message, state: FSMContext) -> None:
     await message.answer("❌ Заявка отменена.", reply_markup=start_keyboard())
 
 
+@router.message(F.text == "📈 Узнать курс")
+@router.message(Command("rate"))
+async def show_rate(message: Message) -> None:
+    await message.answer(await rates.client_rates_text())
+
+
 @router.message(F.text == "💱 Оставить заявку на обмен")
 @router.message(Command("exchange"))
 async def start_form(message: Message, state: FSMContext) -> None:

@@ -19,7 +19,10 @@ CURRENCIES: list[tuple[str, str]] = [
 
 def start_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="💱 Оставить заявку на обмен")]],
+        keyboard=[
+            [KeyboardButton(text="💱 Оставить заявку на обмен")],
+            [KeyboardButton(text="📈 Узнать курс")],
+        ],
         resize_keyboard=True,
     )
 

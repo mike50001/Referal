@@ -103,6 +103,26 @@ async def calculate(
 SNAPSHOT_CODES = ["RUB", "KZT", "THB", "USDT"]
 
 
+async def client_rates_text() -> str:
+    """Дружелюбный текст курсов для клиента (кнопка «Узнать курс»)."""
+    try:
+        rates = await _get_rates()
+    except Exception as exc:
+        logger.warning("Курсы недоступны для клиента: %s", exc)
+        return (
+            "📈 Курс временно недоступен.\n\n"
+            "Оставьте заявку — менеджер свяжется с вами и назовёт актуальный курс."
+        )
+
+    base = "USDT"
+    lines = ["📈 <b>Актуальный курс</b> (ориентировочно):\n"]
+    for code in ["RUB", "KZT", "THB"]:
+        if code in rates:
+            lines.append(f"• 1 {base} ≈ {fmt(rates[code] / rates[base])} {code}")
+    lines.append("\n<i>Точную сумму подтвердит менеджер при оформлении заявки.</i>")
+    return "\n".join(lines)
+
+
 async def snapshot_text() -> str:
     """Текст для команды /rates: текущие курсы или причина ошибки."""
     try:
