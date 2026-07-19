@@ -103,6 +103,27 @@ async def calculate(
 SNAPSHOT_CODES = ["RUB", "KZT", "THB", "USDT"]
 
 
+# Подписи валют для клиентского вида курсов.
+_CURRENCY_LABELS = {
+    "RUB": "🇷🇺 рубль",
+    "KZT": "🇰🇿 тенге",
+    "THB": "🇹🇭 бат",
+    "USDT": "💵 USDT",
+}
+
+# Пары, которые показываем клиенту в «Узнать курс» (в обе стороны).
+CLIENT_PAIRS = [
+    ("KZT", "RUB"),
+    ("RUB", "KZT"),
+    ("RUB", "THB"),
+    ("THB", "RUB"),
+]
+
+
+def _label(code: str) -> str:
+    return _CURRENCY_LABELS.get(code, code)
+
+
 async def client_rates_text() -> str:
     """Дружелюбный текст курсов для клиента (кнопка «Узнать курс»)."""
     try:
@@ -114,11 +135,11 @@ async def client_rates_text() -> str:
             "Оставьте заявку — менеджер свяжется с вами и назовёт актуальный курс."
         )
 
-    base = "USDT"
     lines = ["📈 <b>Актуальный курс</b> (ориентировочно):\n"]
-    for code in ["RUB", "KZT", "THB"]:
-        if code in rates:
-            lines.append(f"• 1 {base} ≈ {fmt(rates[code] / rates[base])} {code}")
+    for give, get in CLIENT_PAIRS:
+        if give in rates and get in rates:
+            rate = rates[get] / rates[give]
+            lines.append(f"• 1 {_label(give)} ≈ {fmt(rate)} {_label(get)}")
     lines.append("\n<i>Точную сумму подтвердит менеджер при оформлении заявки.</i>")
     return "\n".join(lines)
 
