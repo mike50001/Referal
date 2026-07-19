@@ -8,6 +8,7 @@ from aiogram.types import CallbackQuery, Message
 
 from bot.config import Config
 from bot.keyboards import (
+    amount_side_keyboard,
     confirm_keyboard,
     contact_keyboard,
     currency_keyboard,
@@ -56,7 +57,7 @@ async def start_form(message: Message, state: FSMContext) -> None:
     await state.clear()
     await state.set_state(ExchangeForm.give_currency)
     await message.answer(
-        "Шаг 1/4. Какую валюту вы <b>отдаёте</b>?",
+        "Шаг 1/5. Какую валюту вы <b>отдаёте</b>?",
         reply_markup=currency_keyboard("give"),
     )
 
@@ -85,7 +86,7 @@ async def type_give(message: Message, state: FSMContext) -> None:
 async def _ask_get_currency(message: Message, state: FSMContext) -> None:
     await state.set_state(ExchangeForm.get_currency)
     await message.answer(
-        "Шаг 2/4. Какую валюту вы хотите <b>получить</b>?",
+        "Шаг 2/5. Какую валюту вы хотите <b>получить</b>?",
         reply_markup=currency_keyboard("get"),
     )
 
@@ -101,26 +102,56 @@ async def pick_get(call: CallbackQuery, state: FSMContext) -> None:
         await call.answer()
         return
     await state.update_data(get=value)
-    await _ask_amount(call.message, state)
+    await _ask_amount_side(call.message, state)
     await call.answer()
 
 
 @router.message(ExchangeForm.get_currency, F.text)
 async def type_get(message: Message, state: FSMContext) -> None:
     await state.update_data(get=message.text.strip().upper())
-    await _ask_amount(message, state)
+    await _ask_amount_side(message, state)
+
+
+async def _ask_amount_side(message: Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    await state.set_state(ExchangeForm.amount_side)
+    await message.answer(
+        "Шаг 3/5. Как удобнее указать сумму?\n\n"
+        f"💸 <b>Отдаю</b> — вы называете, сколько отдаёте в {data.get('give')}.\n"
+        f"🎯 <b>Хочу получить</b> — вы называете, сколько хотите получить "
+        f"в {data.get('get')} (сколько заплатить — рассчитает менеджер).",
+        reply_markup=amount_side_keyboard(),
+    )
+
+
+# --- Шаг 3: способ указания суммы -----------------------------------------
+
+
+@router.callback_query(ExchangeForm.amount_side, F.data.startswith("side:"))
+async def pick_amount_side(call: CallbackQuery, state: FSMContext) -> None:
+    _, side = call.data.split(":", 1)
+    await state.update_data(side=side)
+    await _ask_amount(call.message, state)
+    await call.answer()
 
 
 async def _ask_amount(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     await state.set_state(ExchangeForm.amount)
-    await message.answer(
-        f"Шаг 3/4. Какую сумму вы хотите обменять?\n"
-        f"Укажите сумму в <b>{data.get('give', '')}</b> (например, 1000):"
-    )
+    if data.get("side") == "get":
+        prompt = (
+            f"Шаг 4/5. Сколько вы хотите <b>получить</b>?\n"
+            f"Укажите сумму в <b>{data.get('get')}</b> (например, 1000):"
+        )
+    else:
+        prompt = (
+            f"Шаг 4/5. Сколько вы хотите <b>отдать</b>?\n"
+            f"Укажите сумму в <b>{data.get('give')}</b> (например, 1000):"
+        )
+    await message.answer(prompt)
 
 
-# --- Шаг 3: сумма ---------------------------------------------------------
+# --- Шаг 4: сумма ---------------------------------------------------------
 
 
 @router.message(ExchangeForm.amount, F.text)
@@ -138,7 +169,7 @@ async def type_amount(message: Message, state: FSMContext) -> None:
     await state.update_data(amount=message.text.strip())
     await state.set_state(ExchangeForm.contact)
     await message.answer(
-        "Шаг 4/4. Как с вами связаться?\n"
+        "Шаг 5/5. Как с вами связаться?\n"
         "Отправьте номер телефона кнопкой ниже или напишите контакт "
         "(телефон / @username) вручную.",
         reply_markup=contact_keyboard(),
@@ -160,13 +191,25 @@ async def contact_typed(message: Message, state: FSMContext) -> None:
     await _show_summary(message, state)
 
 
+def _amount_lines(data: dict) -> str:
+    """Строки о сумме с учётом выбранного способа (отдаю / хочу получить)."""
+    give, get, amount = data.get("give"), data.get("get"), data.get("amount")
+    if data.get("side") == "get":
+        return (
+            f"💸 Отдаёте: <b>{give}</b> <i>(сумму рассчитает менеджер)</i>\n"
+            f"🎯 Хотите получить: <b>{amount} {get}</b>"
+        )
+    return (
+        f"💸 Отдаёте: <b>{amount} {give}</b>\n"
+        f"💰 Получаете: <b>{get}</b> <i>(сумму рассчитает менеджер)</i>"
+    )
+
+
 async def _show_summary(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     text = (
         "Проверьте заявку:\n\n"
-        f"💸 Отдаёте: <b>{data.get('give')}</b>\n"
-        f"💰 Получаете: <b>{data.get('get')}</b>\n"
-        f"🔢 Сумма: <b>{data.get('amount')} {data.get('give')}</b>\n"
+        f"{_amount_lines(data)}\n"
         f"📞 Контакт: <b>{data.get('contact')}</b>\n\n"
         "Всё верно?"
     )
@@ -195,9 +238,7 @@ async def confirm_yes(call: CallbackQuery, state: FSMContext, config: Config) ->
         "🆕 <b>Новая заявка на обмен</b>\n\n"
         f"👤 Клиент: <a href=\"tg://user?id={user.id}\">{user.full_name}</a>"
         f"{username_part}\n"
-        f"💸 Отдаёт: <b>{data.get('give')}</b>\n"
-        f"💰 Получает: <b>{data.get('get')}</b>\n"
-        f"🔢 Сумма: <b>{data.get('amount')} {data.get('give')}</b>\n"
+        f"{_amount_lines(data)}\n"
         f"📞 Контакт: <b>{data.get('contact')}</b>\n\n"
         f"{CLIENT_ID_MARKER} {user.id}\n"
         "↩️ Чтобы ответить клиенту — ответьте (reply) на это сообщение."

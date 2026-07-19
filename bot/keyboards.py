@@ -47,6 +47,16 @@ def currency_keyboard(prefix: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def amount_side_keyboard() -> InlineKeyboardMarkup:
+    """Как клиент задаёт сумму: сколько отдаёт или сколько хочет получить."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💸 Указать сумму, которую отдаю", callback_data="side:give")],
+            [InlineKeyboardButton(text="🎯 Указать сумму, которую хочу получить", callback_data="side:get")],
+        ]
+    )
+
+
 def contact_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
