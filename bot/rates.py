@@ -1,46 +1,108 @@
-"""Получение курсов валют и расчёт суммы обмена.
+"""Курсы обмена и расчёт суммы сделки.
 
-Источник — бесплатный API https://open.er-api.com (база USD, без ключа).
-Курсы кэшируются, чтобы не дёргать API на каждое сообщение.
-USDT считается равным доллару (стейблкоин ≈ $1).
+Курсы задаёт обменник вручную — командой /setrate прямо в боте
+(интернет не нужен). Курсы направленные: для каждой пары свой курс
+«туда» и «обратно» (спред обменника). Значения сохраняются в файл,
+поэтому переживают перезапуск бота.
 """
 from __future__ import annotations
 
+import json
 import logging
-import time
-
-import aiohttp
+import pathlib
 
 logger = logging.getLogger("exchange-bot.rates")
 
-API_URL = "https://open.er-api.com/v6/latest/USD"
-_CACHE_TTL = 600  # секунд (10 минут)
-_cache: dict[str, object] = {"ts": 0.0, "rates": {}}
+# Файл, где хранятся заданные обменником курсы (рядом с проектом).
+_RATES_FILE = pathlib.Path(__file__).resolve().parent.parent / "rates_data.json"
+
+# Текущие курсы обменника. Значения по умолчанию можно менять командой /setrate.
+#   kzt_give_kzt — сколько ТЕНГЕ за 1 РУБЛЬ, когда клиент отдаёт ТЕНГЕ (→ рубли)
+#   kzt_give_rub — сколько ТЕНГЕ за 1 РУБЛЬ, когда клиент отдаёт РУБЛИ (→ тенге)
+#   thb_give_thb — сколько РУБЛЕЙ за 1 БАТ, когда клиент отдаёт БАТЫ (→ рубли)
+#   thb_give_rub — сколько РУБЛЕЙ за 1 БАТ, когда клиент отдаёт РУБЛИ (→ баты)
+QUOTE_KEYS = ("kzt_give_kzt", "kzt_give_rub", "thb_give_thb", "thb_give_rub")
+_quotes: dict[str, float] = {
+    "kzt_give_kzt": 6.2,
+    "kzt_give_rub": 5.6,
+    "thb_give_thb": 2.3,
+    "thb_give_rub": 2.55,
+}
+
+# Подписи валют для вывода.
+_CURRENCY_LABELS = {
+    "RUB": "🇷🇺 рубль",
+    "KZT": "🇰🇿 тенге",
+    "THB": "🇹🇭 бат",
+    "USDT": "💵 USDT",
+}
+
+# Пары, которые показываем в «Узнать курс» (в обе стороны).
+CLIENT_PAIRS = [
+    ("KZT", "RUB"),
+    ("RUB", "KZT"),
+    ("RUB", "THB"),
+    ("THB", "RUB"),
+]
 
 
-async def _get_rates() -> dict[str, float]:
-    """Возвращает словарь «валюта → сколько единиц за 1 USD». С кэшированием."""
-    now = time.time()
-    cached = _cache.get("rates") or {}
-    if cached and now - float(_cache["ts"]) < _CACHE_TTL:
-        return cached  # type: ignore[return-value]
+# --- Хранилище курсов -----------------------------------------------------
 
-    timeout = aiohttp.ClientTimeout(total=15)
-    async with aiohttp.ClientSession(timeout=timeout) as session:
-        async with session.get(API_URL) as resp:
-            resp.raise_for_status()
-            data = await resp.json()
 
-    if data.get("result") != "success" or "rates" not in data:
-        raise RuntimeError("Некорректный ответ API курсов")
+def load() -> None:
+    """Загружает сохранённые курсы из файла (вызывается при старте бота)."""
+    try:
+        if _RATES_FILE.exists():
+            data = json.loads(_RATES_FILE.read_text("utf-8"))
+            for key in QUOTE_KEYS:
+                if key in data:
+                    _quotes[key] = float(data[key])
+            logger.info("Курсы загружены из файла: %s", _quotes)
+    except Exception as exc:
+        logger.warning("Не удалось загрузить курсы из файла: %s", exc)
 
-    rates: dict[str, float] = dict(data["rates"])
-    rates.setdefault("USD", 1.0)
-    rates["USDT"] = rates["USD"]  # стейблкоин привязан к доллару
 
-    _cache["rates"] = rates
-    _cache["ts"] = now
-    return rates
+def _save() -> None:
+    try:
+        _RATES_FILE.write_text(json.dumps(_quotes, ensure_ascii=False), "utf-8")
+    except Exception as exc:
+        logger.warning("Не удалось сохранить курсы в файл: %s", exc)
+
+
+def get_quotes() -> dict[str, float]:
+    return dict(_quotes)
+
+
+def set_quotes(kzt_give_kzt: float, kzt_give_rub: float,
+               thb_give_thb: float, thb_give_rub: float) -> None:
+    _quotes.update(
+        kzt_give_kzt=kzt_give_kzt,
+        kzt_give_rub=kzt_give_rub,
+        thb_give_thb=thb_give_thb,
+        thb_give_rub=thb_give_rub,
+    )
+    _save()
+
+
+def _pair_rate(give: str, get: str) -> float | None:
+    """Курс: сколько единиц `get` за 1 единицу `give`. None, если пара не задана."""
+    q = _quotes
+    if (give, get) == ("KZT", "RUB"):
+        return 1 / q["kzt_give_kzt"]
+    if (give, get) == ("RUB", "KZT"):
+        return q["kzt_give_rub"]
+    if (give, get) == ("THB", "RUB"):
+        return q["thb_give_thb"]
+    if (give, get) == ("RUB", "THB"):
+        return 1 / q["thb_give_rub"]
+    return None
+
+
+# --- Форматирование и расчёт ----------------------------------------------
+
+
+def _label(code: str) -> str:
+    return _CURRENCY_LABELS.get(code, code)
 
 
 def fmt(value: float) -> str:
@@ -61,100 +123,53 @@ def fmt(value: float) -> str:
 async def calculate(
     give: str,
     get: str,
-    amount: float,
+    amount: float | None,
     side: str,
-    markup_percent: float,
+    markup_percent: float = 0.0,
 ) -> dict[str, float] | None:
-    """Считает недостающую сторону сделки по текущему курсу с наценкой.
+    """Считает недостающую сторону сделки по курсу обменника.
 
-    side == "give": клиент отдаёт `amount` в валюте `give` → сколько получит в `get`.
-    side == "get":  клиент хочет получить `amount` в валюте `get` → сколько отдаст в `give`.
+    side == "give": клиент отдаёт `amount` в `give` → сколько получит в `get`.
+    side == "get":  клиент хочет получить `amount` в `get` → сколько отдаст в `give`.
 
-    Наценка всегда в пользу обменника (клиент получает меньше / платит больше).
-    Возвращает {"counter": сумма_другой_стороны, "rate": курс_get_за_1_give}
-    или None, если курс недоступен (тогда сумму назовёт менеджер).
+    Возвращает {"counter": сумма, "rate": курс_get_за_1_give} или None,
+    если для пары нет заданного курса (тогда сумму назовёт менеджер).
     """
-    try:
-        rates = await _get_rates()
-    except Exception as exc:  # сеть/недоступность API — не роняем заявку
-        logger.warning("Не удалось получить курсы валют: %s", exc)
+    if amount is None:
         return None
 
-    if give not in rates or get not in rates:
-        logger.warning("Нет курса для пары %s/%s", give, get)
+    rate = _pair_rate(give, get)
+    if rate is None:
+        logger.info("Нет курса для пары %s/%s", give, get)
         return None
 
     margin = markup_percent / 100.0
-    market_rate = rates[get] / rates[give]  # сколько GET за 1 GIVE (рыночный)
-
     if side == "get":
-        # Клиент фиксирует сумму к получению → считаем, сколько отдать (дороже).
-        counter = amount * (rates[give] / rates[get]) * (1 + margin)
-        effective_rate = market_rate / (1 + margin)
+        counter = (amount / rate) * (1 + margin)      # платит больше
+        effective_rate = rate / (1 + margin)
     else:
-        # Клиент фиксирует сумму к отдаче → считаем, сколько получит (меньше).
-        counter = amount * market_rate * (1 - margin)
-        effective_rate = market_rate * (1 - margin)
+        counter = amount * rate * (1 - margin)         # получает меньше
+        effective_rate = rate * (1 - margin)
 
     return {"counter": counter, "rate": effective_rate}
 
 
-# Валюты, которые бот показывает в диагностике /rates.
-SNAPSHOT_CODES = ["RUB", "KZT", "THB", "USDT"]
-
-
-# Подписи валют для клиентского вида курсов.
-_CURRENCY_LABELS = {
-    "RUB": "🇷🇺 рубль",
-    "KZT": "🇰🇿 тенге",
-    "THB": "🇹🇭 бат",
-    "USDT": "💵 USDT",
-}
-
-# Пары, которые показываем клиенту в «Узнать курс» (в обе стороны).
-CLIENT_PAIRS = [
-    ("KZT", "RUB"),
-    ("RUB", "KZT"),
-    ("RUB", "THB"),
-    ("THB", "RUB"),
-]
-
-
-def _label(code: str) -> str:
-    return _CURRENCY_LABELS.get(code, code)
+def _rates_lines() -> list[str]:
+    lines: list[str] = []
+    for give, get in CLIENT_PAIRS:
+        rate = _pair_rate(give, get)
+        if rate is not None:
+            lines.append(f"• 1 {_label(give)} ≈ {fmt(rate)} {_label(get)}")
+    return lines
 
 
 async def client_rates_text() -> str:
-    """Дружелюбный текст курсов для клиента (кнопка «Узнать курс»)."""
-    try:
-        rates = await _get_rates()
-    except Exception as exc:
-        logger.warning("Курсы недоступны для клиента: %s", exc)
-        return (
-            "📈 Курс временно недоступен.\n\n"
-            "Оставьте заявку — менеджер свяжется с вами и назовёт актуальный курс."
-        )
-
-    lines = ["📈 <b>Актуальный курс</b> (ориентировочно):\n"]
-    for give, get in CLIENT_PAIRS:
-        if give in rates and get in rates:
-            rate = rates[get] / rates[give]
-            lines.append(f"• 1 {_label(give)} ≈ {fmt(rate)} {_label(get)}")
+    """Текст курсов для клиента (кнопка «Узнать курс»)."""
+    lines = ["📈 <b>Актуальный курс:</b>\n", *_rates_lines()]
     lines.append("\n<i>Точную сумму подтвердит менеджер при оформлении заявки.</i>")
     return "\n".join(lines)
 
 
 async def snapshot_text() -> str:
-    """Текст для команды /rates: текущие курсы или причина ошибки."""
-    try:
-        rates = await _get_rates()
-    except Exception as exc:
-        return f"⚠️ Не удалось получить курсы: {exc}"
-
-    base = "USDT"
-    lines = [f"📈 <b>Текущие курсы</b> (кэш 10 мин), 1 {base} ="]
-    for code in SNAPSHOT_CODES:
-        if code == base or code not in rates:
-            continue
-        lines.append(f"• {fmt(rates[code] / rates[base])} {code}")
-    return "\n".join(lines)
+    """Текст текущих курсов для админа."""
+    return "\n".join(["📈 <b>Курсы обменника сейчас:</b>\n", *_rates_lines()])

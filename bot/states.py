@@ -9,3 +9,11 @@ class ExchangeForm(StatesGroup):
     amount = State()          # сумма
     contact = State()         # контакт для связи
     confirm = State()         # подтверждение заявки
+
+
+class SetRates(StatesGroup):
+    """Пошаговый ввод курсов админом (команда /setrate)."""
+    kzt_give_kzt = State()   # тенге за 1 рубль (клиент отдаёт тенге)
+    kzt_give_rub = State()   # тенге за 1 рубль (клиент отдаёт рубли)
+    thb_give_thb = State()   # рублей за 1 бат (клиент отдаёт баты)
+    thb_give_rub = State()   # рублей за 1 бат (клиент отдаёт рубли)

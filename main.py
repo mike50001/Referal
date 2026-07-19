@@ -7,9 +7,10 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.types import BotCommand
+from aiogram.types import BotCommand, BotCommandScopeChat
 
-from bot.config import load_config
+from bot import rates
+from bot.config import Config, load_config
 from bot.handlers import admin_router, client_router
 
 logging.basicConfig(
@@ -19,7 +20,8 @@ logging.basicConfig(
 logger = logging.getLogger("exchange-bot")
 
 
-async def set_commands(bot: Bot) -> None:
+async def set_commands(bot: Bot, config: Config) -> None:
+    # Команды для всех пользователей.
     await bot.set_my_commands(
         [
             BotCommand(command="start", description="Запустить бота"),
@@ -28,10 +30,24 @@ async def set_commands(bot: Bot) -> None:
             BotCommand(command="cancel", description="Отменить текущую заявку"),
         ]
     )
+    # Дополнительные команды только в чате заявок (для админа).
+    try:
+        await bot.set_my_commands(
+            [
+                BotCommand(command="rates", description="Показать текущие курсы"),
+                BotCommand(command="setrate", description="Изменить курсы"),
+                BotCommand(command="rate", description="Узнать курс"),
+                BotCommand(command="cancel", description="Отмена"),
+            ],
+            scope=BotCommandScopeChat(chat_id=config.admin_chat_id),
+        )
+    except Exception as exc:
+        logger.warning("Не удалось задать команды для админ-чата: %s", exc)
 
 
 async def main() -> None:
     config = load_config()
+    rates.load()  # подгружаем сохранённые обменником курсы
 
     bot = Bot(
         token=config.bot_token,
@@ -44,7 +60,7 @@ async def main() -> None:
     dp.include_router(client_router)
     dp.include_router(admin_router)
 
-    await set_commands(bot)
+    await set_commands(bot, config)
     await bot.delete_webhook(drop_pending_updates=True)
 
     me = await bot.get_me()
