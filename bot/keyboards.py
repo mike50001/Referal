@@ -6,8 +6,15 @@ from aiogram.types import (
     ReplyKeyboardMarkup,
 )
 
-# Набор популярных валют. Клиент также может ввести свою вручную.
-CURRENCIES = ["USD", "EUR", "RUB", "USDT", "BTC", "ETH"]
+# Валюты для кнопок: (код, подпись на кнопке).
+# Код уходит в заявку менеджеру, подпись видит клиент.
+# Клиент также может ввести свою валюту вручную.
+CURRENCIES: list[tuple[str, str]] = [
+    ("RUB", "🇷🇺 Рубль"),
+    ("KZT", "🇰🇿 Тенге"),
+    ("THB", "🇹🇭 Тайский бат"),
+    ("USDT", "💵 USDT"),
+]
 
 
 def start_keyboard() -> ReplyKeyboardMarkup:
@@ -25,11 +32,11 @@ def currency_keyboard(prefix: str) -> InlineKeyboardMarkup:
     """
     rows: list[list[InlineKeyboardButton]] = []
     row: list[InlineKeyboardButton] = []
-    for i, cur in enumerate(CURRENCIES, start=1):
+    for i, (code, label) in enumerate(CURRENCIES, start=1):
         row.append(
-            InlineKeyboardButton(text=cur, callback_data=f"{prefix}:{cur}")
+            InlineKeyboardButton(text=label, callback_data=f"{prefix}:{code}")
         )
-        if i % 3 == 0:
+        if i % 2 == 0:  # по 2 кнопки в ряд
             rows.append(row)
             row = []
     if row:
