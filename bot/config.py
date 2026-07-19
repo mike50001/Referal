@@ -14,6 +14,7 @@ class Config:
     bot_token: str
     admin_chat_id: int
     admin_ids: set[int] = field(default_factory=set)
+    markup_percent: float = 0.0  # наценка обменника к рыночному курсу, %
 
     def is_admin(self, user_id: int) -> bool:
         """Может ли пользователь отвечать клиентам.
@@ -54,8 +55,15 @@ def load_config() -> Config:
     except ValueError as exc:
         raise RuntimeError("ADMIN_CHAT_ID должен быть числом.") from exc
 
+    markup_raw = os.getenv("EXCHANGE_MARKUP_PERCENT", "0").strip().replace(",", ".")
+    try:
+        markup_percent = float(markup_raw) if markup_raw else 0.0
+    except ValueError as exc:
+        raise RuntimeError("EXCHANGE_MARKUP_PERCENT должен быть числом (например, 2.5).") from exc
+
     return Config(
         bot_token=token,
         admin_chat_id=admin_chat_id,
         admin_ids=_parse_admin_ids(os.getenv("ADMIN_IDS")),
+        markup_percent=markup_percent,
     )

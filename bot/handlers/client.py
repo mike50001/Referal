@@ -6,6 +6,7 @@ from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
+from bot import rates
 from bot.config import Config
 from bot.keyboards import (
     amount_side_keyboard,
@@ -165,8 +166,8 @@ async def type_amount(message: Message, state: FSMContext) -> None:
         await message.answer("Пожалуйста, введите сумму числом больше нуля. Например: 1000")
         return
 
-    # Сохраняем как введено (без принудительного форматирования дробей).
-    await state.update_data(amount=message.text.strip())
+    # Сохраняем как введено (для показа) и числом (для расчёта курса).
+    await state.update_data(amount=message.text.strip(), amount_value=value)
     await state.set_state(ExchangeForm.contact)
     await message.answer(
         "Шаг 5/5. Как с вами связаться?\n"
@@ -180,37 +181,70 @@ async def type_amount(message: Message, state: FSMContext) -> None:
 
 
 @router.message(ExchangeForm.contact, F.contact)
-async def contact_shared(message: Message, state: FSMContext) -> None:
+async def contact_shared(message: Message, state: FSMContext, config: Config) -> None:
     await state.update_data(contact=message.contact.phone_number)
-    await _show_summary(message, state)
+    await _show_summary(message, state, config)
 
 
 @router.message(ExchangeForm.contact, F.text)
-async def contact_typed(message: Message, state: FSMContext) -> None:
+async def contact_typed(message: Message, state: FSMContext, config: Config) -> None:
     await state.update_data(contact=message.text.strip())
-    await _show_summary(message, state)
+    await _show_summary(message, state, config)
 
 
 def _amount_lines(data: dict) -> str:
-    """Строки о сумме с учётом выбранного способа (отдаю / хочу получить)."""
+    """Строки о сумме с учётом выбранного способа и рассчитанного курса."""
     give, get, amount = data.get("give"), data.get("get"), data.get("amount")
+    counter = data.get("est_counter")
     if data.get("side") == "get":
-        return (
-            f"💸 Отдаёте: <b>{give}</b> <i>(сумму рассчитает менеджер)</i>\n"
-            f"🎯 Хотите получить: <b>{amount} {get}</b>"
+        pay = (
+            f"≈ <b>{rates.fmt(counter)} {give}</b>"
+            if counter is not None
+            else f"<b>{give}</b> <i>(сумму рассчитает менеджер)</i>"
         )
-    return (
-        f"💸 Отдаёте: <b>{amount} {give}</b>\n"
-        f"💰 Получаете: <b>{get}</b> <i>(сумму рассчитает менеджер)</i>"
+        return f"💸 Отдаёте: {pay}\n🎯 Хотите получить: <b>{amount} {get}</b>"
+    receive = (
+        f"≈ <b>{rates.fmt(counter)} {get}</b>"
+        if counter is not None
+        else f"<b>{get}</b> <i>(сумму рассчитает менеджер)</i>"
     )
+    return f"💸 Отдаёте: <b>{amount} {give}</b>\n💰 Получаете: {receive}"
 
 
-async def _show_summary(message: Message, state: FSMContext) -> None:
+def _rate_line(data: dict) -> str:
+    """Строка с текущим курсом, если он рассчитан."""
+    rate = data.get("est_rate")
+    if rate is None:
+        return ""
+    return f"📈 Курс: 1 {data.get('give')} ≈ {rates.fmt(rate)} {data.get('get')}\n"
+
+
+async def _show_summary(message: Message, state: FSMContext, config: Config) -> None:
     data = await state.get_data()
+
+    # Рассчитываем недостающую сторону по актуальному курсу (если API доступен).
+    est = await rates.calculate(
+        data.get("give"),
+        data.get("get"),
+        data.get("amount_value"),
+        data.get("side", "give"),
+        config.markup_percent,
+    )
+    if est:
+        await state.update_data(est_counter=est["counter"], est_rate=est["rate"])
+        data = await state.get_data()
+
+    note = (
+        "<i>Курс ориентировочный, точную сумму подтвердит менеджер.</i>\n\n"
+        if data.get("est_rate") is not None
+        else ""
+    )
     text = (
         "Проверьте заявку:\n\n"
         f"{_amount_lines(data)}\n"
+        f"{_rate_line(data)}"
         f"📞 Контакт: <b>{data.get('contact')}</b>\n\n"
+        f"{note}"
         "Всё верно?"
     )
     await state.set_state(ExchangeForm.confirm)
@@ -239,6 +273,7 @@ async def confirm_yes(call: CallbackQuery, state: FSMContext, config: Config) ->
         f"👤 Клиент: <a href=\"tg://user?id={user.id}\">{user.full_name}</a>"
         f"{username_part}\n"
         f"{_amount_lines(data)}\n"
+        f"{_rate_line(data)}"
         f"📞 Контакт: <b>{data.get('contact')}</b>\n\n"
         f"{CLIENT_ID_MARKER} {user.id}\n"
         "↩️ Чтобы ответить клиенту — ответьте (reply) на это сообщение."
