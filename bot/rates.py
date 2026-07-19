@@ -29,20 +29,13 @@ _quotes: dict[str, float] = {
     "thb_give_rub": 2.55,
 }
 
-# Подписи валют для вывода.
-_CURRENCY_LABELS = {
-    "RUB": "🇷🇺 рубль",
-    "KZT": "🇰🇿 тенге",
-    "THB": "🇹🇭 бат",
-    "USDT": "💵 USDT",
-}
-
-# Пары, которые показываем в «Узнать курс» (в обе стороны).
-CLIENT_PAIRS = [
-    ("KZT", "RUB"),
-    ("RUB", "KZT"),
-    ("RUB", "THB"),
-    ("THB", "RUB"),
+# Как показывать курсы клиенту/админу: (заголовок, ключ курса, единица).
+# Показываем ровно те числа, что задаёт обменник.
+_RATE_DISPLAY = [
+    ("🇰🇿 Тенге → 🇷🇺 Рубль", "kzt_give_kzt", "тенге за 1 рубль"),
+    ("🇷🇺 Рубль → 🇰🇿 Тенге", "kzt_give_rub", "тенге за 1 рубль"),
+    ("🇹🇭 Бат → 🇷🇺 Рубль", "thb_give_thb", "рублей за 1 бат"),
+    ("🇷🇺 Рубль → 🇹🇭 Бат", "thb_give_rub", "рублей за 1 бат"),
 ]
 
 
@@ -101,10 +94,6 @@ def _pair_rate(give: str, get: str) -> float | None:
 # --- Форматирование и расчёт ----------------------------------------------
 
 
-def _label(code: str) -> str:
-    return _CURRENCY_LABELS.get(code, code)
-
-
 def fmt(value: float) -> str:
     """Аккуратно форматирует сумму: разделяет тысячи, убирает лишние нули."""
     av = abs(value)
@@ -155,12 +144,10 @@ async def calculate(
 
 
 def _rates_lines() -> list[str]:
-    lines: list[str] = []
-    for give, get in CLIENT_PAIRS:
-        rate = _pair_rate(give, get)
-        if rate is not None:
-            lines.append(f"• 1 {_label(give)} ≈ {fmt(rate)} {_label(get)}")
-    return lines
+    return [
+        f"• {title}: <b>{fmt(_quotes[key])}</b> ({unit})"
+        for title, key, unit in _RATE_DISPLAY
+    ]
 
 
 async def client_rates_text() -> str:
