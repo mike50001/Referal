@@ -1,0 +1,61 @@
+"""Клавиатуры бота."""
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    ReplyKeyboardMarkup,
+)
+
+# Набор популярных валют. Клиент также может ввести свою вручную.
+CURRENCIES = ["USD", "EUR", "RUB", "USDT", "BTC", "ETH"]
+
+
+def start_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="💱 Оставить заявку на обмен")]],
+        resize_keyboard=True,
+    )
+
+
+def currency_keyboard(prefix: str) -> InlineKeyboardMarkup:
+    """Инлайн-клавиатура выбора валюты.
+
+    prefix используется, чтобы различать шаг «отдаю» и «получаю»
+    в callback_data (give / get).
+    """
+    rows: list[list[InlineKeyboardButton]] = []
+    row: list[InlineKeyboardButton] = []
+    for i, cur in enumerate(CURRENCIES, start=1):
+        row.append(
+            InlineKeyboardButton(text=cur, callback_data=f"{prefix}:{cur}")
+        )
+        if i % 3 == 0:
+            rows.append(row)
+            row = []
+    if row:
+        rows.append(row)
+    rows.append(
+        [InlineKeyboardButton(text="✍️ Другая валюта", callback_data=f"{prefix}:custom")]
+    )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def contact_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="📱 Отправить мой номер", request_contact=True)],
+        ],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+
+
+def confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Отправить", callback_data="confirm:yes"),
+                InlineKeyboardButton(text="❌ Отменить", callback_data="confirm:no"),
+            ]
+        ]
+    )
