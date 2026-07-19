@@ -9,8 +9,10 @@ from __future__ import annotations
 import re
 
 from aiogram import F, Router
+from aiogram.filters import Command
 from aiogram.types import Message
 
+from bot import rates
 from bot.config import Config
 from bot.handlers.client import CLIENT_ID_MARKER
 
@@ -24,6 +26,17 @@ def _extract_client_id(text: str | None) -> int | None:
         return None
     match = _CLIENT_ID_RE.search(text)
     return int(match.group(1)) if match else None
+
+
+@router.message(Command("rates"))
+async def show_rates(message: Message, config: Config) -> None:
+    """Диагностика: показать текущие курсы. Только в чате заявок."""
+    if message.chat.id != config.admin_chat_id:
+        return
+    text = await rates.snapshot_text()
+    if config.markup_percent:
+        text += f"\n\nНаценка обменника: {config.markup_percent:g}%"
+    await message.answer(text)
 
 
 @router.message(F.reply_to_message)

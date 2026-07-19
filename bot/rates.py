@@ -97,3 +97,23 @@ async def calculate(
         effective_rate = market_rate * (1 - margin)
 
     return {"counter": counter, "rate": effective_rate}
+
+
+# Валюты, которые бот показывает в диагностике /rates.
+SNAPSHOT_CODES = ["RUB", "KZT", "THB", "USDT"]
+
+
+async def snapshot_text() -> str:
+    """Текст для команды /rates: текущие курсы или причина ошибки."""
+    try:
+        rates = await _get_rates()
+    except Exception as exc:
+        return f"⚠️ Не удалось получить курсы: {exc}"
+
+    base = "USDT"
+    lines = [f"📈 <b>Текущие курсы</b> (кэш 10 мин), 1 {base} ="]
+    for code in SNAPSHOT_CODES:
+        if code == base or code not in rates:
+            continue
+        lines.append(f"• {fmt(rates[code] / rates[base])} {code}")
+    return "\n".join(lines)
