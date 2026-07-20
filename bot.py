@@ -11,7 +11,7 @@ import os
 from collections import defaultdict, deque
 
 from dotenv import load_dotenv
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, AuthenticationError, RateLimitError
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import (
@@ -40,6 +40,12 @@ logging.basicConfig(
     level=logging.INFO,
 )
 logger = logging.getLogger(__name__)
+
+# Убираем шум от фонового опроса Telegram, чтобы в логах были видны
+# только важные сообщения и реальные ошибки (например, от OpenAI).
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("telegram").setLevel(logging.WARNING)
+logging.getLogger("apscheduler").setLevel(logging.WARNING)
 
 # --- Клиент OpenAI и память диалогов --------------------------------------
 
@@ -116,8 +122,20 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
     try:
         reply = await ask_openai(chat_id, user_text)
+    except AuthenticationError:
+        logger.error(
+            "OpenAI: неверный ключ (AuthenticationError). Проверь переменную "
+            "OPENAI_API_KEY — возможно, ключ отозван или скопирован с ошибкой."
+        )
+        reply = "Ой, у меня сейчас проблемы с доступом к «мозгу» 😔 Скоро починят!"
+    except RateLimitError:
+        logger.error(
+            "OpenAI: превышен лимит / нет средств (RateLimitError, обычно "
+            "insufficient_quota). Пополни баланс OpenAI в разделе Billing."
+        )
+        reply = "Ой, я немного устала думать 😔 Дай мне пару минут, попробуй позже."
     except Exception:
-        logger.exception("Ошибка при обращении к OpenAI")
+        logger.exception("OpenAI: непредвиденная ошибка при обращении к API")
         reply = (
             "Ой, что-то у меня сейчас не получается ответить 😔 "
             "Попробуй, пожалуйста, ещё раз через минутку."
