@@ -8,6 +8,8 @@
 
 import logging
 import os
+import random
+import re
 from collections import defaultdict, deque
 
 from dotenv import load_dotenv
@@ -65,6 +67,50 @@ def get_client() -> AsyncOpenAI:
 # Храним в памяти процесса; при перезапуске бота история очищается.
 histories: dict[int, deque] = defaultdict(lambda: deque(maxlen=HISTORY_LIMIT * 2))
 
+# --- Фотографии -----------------------------------------------------------
+
+# Папка с картинками, которые бот может отправлять. Наполняешь её сам —
+# кладёшь туда изображения, на которые у тебя есть права.
+PHOTOS_DIR = os.getenv("PHOTOS_DIR", "photos")
+_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+
+# Слова-триггеры: если сообщение просит фото — бот отправит картинку.
+_PHOTO_REQUEST_RE = re.compile(
+    r"\b(фото|фотк|фоточк|селфи|скинь.*(себя|фото)|покажи.*себя|пришли.*фото)",
+    re.IGNORECASE,
+)
+
+
+def list_photos() -> list[str]:
+    """Возвращает список путей к картинкам в папке PHOTOS_DIR."""
+    if not os.path.isdir(PHOTOS_DIR):
+        return []
+    return [
+        os.path.join(PHOTOS_DIR, name)
+        for name in sorted(os.listdir(PHOTOS_DIR))
+        if os.path.splitext(name)[1].lower() in _IMAGE_EXTS
+    ]
+
+
+def wants_photo(text: str) -> bool:
+    """Похоже ли сообщение на просьбу прислать фото."""
+    return bool(_PHOTO_REQUEST_RE.search(text or ""))
+
+
+async def send_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Отправляет случайную картинку из папки или дерзко отказывает, если её нет."""
+    photos = list_photos()
+    if not photos:
+        await update.message.reply_text(random.choice(personality.NO_PHOTOS_MESSAGES))
+        return
+
+    chat_id = update.effective_chat.id
+    await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.UPLOAD_PHOTO)
+    with open(random.choice(photos), "rb") as img:
+        await update.message.reply_photo(
+            photo=img, caption=random.choice(personality.PHOTO_CAPTIONS)
+        )
+
 
 async def ask_openai(chat_id: int, user_text: str) -> str:
     """Отправляет сообщение пользователя в OpenAI с учётом истории и характера."""
@@ -108,6 +154,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "Команды:\n"
         "/start — начать заново и познакомиться\n"
         "/reset — забыть наш прошлый разговор\n"
+        "/photo — попросить фото (если заслужишь 💅)\n"
         "/help — эта подсказка"
     )
 
@@ -116,6 +163,11 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     """Основной обработчик обычных текстовых сообщений."""
     chat_id = update.effective_chat.id
     user_text = update.message.text
+
+    # Если просят фото — отправляем картинку из папки (или дерзко отказываем).
+    if wants_photo(user_text):
+        await send_photo(update, context)
+        return
 
     # Показываем «печатает…», пока ждём ответ от OpenAI.
     await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
@@ -162,6 +214,7 @@ def main() -> None:
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("reset", reset))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("photo", send_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
 
     logger.info("Бот %s запущен. Нажми Ctrl+C для остановки.", personality.BOT_NAME)
