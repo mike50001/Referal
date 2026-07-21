@@ -8,12 +8,15 @@ from __future__ import annotations
 
 import logging
 import os
+import pathlib
 
 from aiohttp import web
 
 from bot import rates
 
 logger = logging.getLogger("exchange-bot.webapp")
+
+_BG_PATH = pathlib.Path(__file__).resolve().parent / "assets" / "bg.png"
 
 PAGE = """<!doctype html>
 <html lang="ru">
@@ -27,11 +30,15 @@ PAGE = """<!doctype html>
   body {
     margin: 0; padding: 18px; min-height: 100vh;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    color: #f4ead0;
-    background:
-      radial-gradient(130% 70% at 50% -8%, rgba(255,190,80,.18), rgba(0,0,0,0) 55%),
-      radial-gradient(120% 90% at 50% 0%, #0e3b3f 0%, #0a2226 42%, #05100f 100%);
-    background-attachment: fixed;
+    color: #f4ead0; position: relative;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -2;
+    background: url('/bg.png') center center / cover no-repeat;
+  }
+  body::after {
+    content: ""; position: fixed; inset: 0; z-index: -1;
+    background: linear-gradient(180deg, rgba(5,12,14,.66) 0%, rgba(4,9,11,.82) 60%, rgba(3,7,9,.9) 100%);
   }
   .wrap { max-width: 460px; margin: 0 auto; }
   .frame {
@@ -67,6 +74,13 @@ PAGE = """<!doctype html>
   .result { text-align: center; padding: 8px 0 2px; }
   .result .big { font-size: 33px; font-weight: 800; }
   .result .rate { font-size: 12.5px; color: #b89a5c; margin-top: 6px; }
+  .rrow {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 2px; border-bottom: 1px solid rgba(232,184,64,.14); font-size: 14px;
+  }
+  .rrow:last-child { border-bottom: none; }
+  .rrow .v { font-weight: 800; font-size: 16px; }
+  .rrow .u { color: #9c8a5c; font-size: 10.5px; margin-left: 4px; }
   .muted { text-align: center; font-size: 12px; color: #9c8a5c; margin-top: 14px; }
 </style>
 </head>
@@ -95,6 +109,11 @@ PAGE = """<!doctype html>
         <div class="big gold" id="out">—</div>
         <div class="rate" id="rateline"></div>
       </div>
+    </div>
+
+    <div class="card">
+      <label>📈 Курсы обменника</label>
+      <div id="rateslist"></div>
     </div>
 
     <div class="muted" id="hint">Загрузка курсов…</div>
@@ -162,10 +181,19 @@ PAGE = """<!doctype html>
     getSel.addEventListener(ev, calc);
   });
 
+  function renderRates(rows) {
+    $("rateslist").innerHTML = (rows || []).map(r =>
+      '<div class="rrow"><span>' + r.title + '</span>' +
+      '<span><span class="v gold">' + r.value + '</span>' +
+      '<span class="u">' + r.unit + '</span></span></div>'
+    ).join("");
+  }
+
   fetch("/api/rates")
     .then(r => r.json())
     .then(data => {
       PAIRS = data.pairs || {};
+      renderRates(data.rows);
       $("hint").textContent = "Курс ориентировочный. Для заявки вернитесь в бот.";
       calc();
     })
@@ -181,7 +209,16 @@ async def handle_index(request: web.Request) -> web.Response:
 
 
 async def handle_rates(request: web.Request) -> web.Response:
-    return web.json_response({"pairs": rates.all_pair_rates()})
+    return web.json_response({
+        "pairs": rates.all_pair_rates(),
+        "rows": rates.display_rows(),
+    })
+
+
+async def handle_bg(request: web.Request) -> web.StreamResponse:
+    if _BG_PATH.exists():
+        return web.FileResponse(_BG_PATH)
+    return web.Response(status=404)
 
 
 async def handle_health(request: web.Request) -> web.Response:
@@ -193,6 +230,7 @@ def create_app() -> web.Application:
     app.router.add_get("/", handle_index)
     app.router.add_get("/app", handle_index)
     app.router.add_get("/api/rates", handle_rates)
+    app.router.add_get("/bg.png", handle_bg)
     app.router.add_get("/health", handle_health)
     return app
 

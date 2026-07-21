@@ -130,6 +130,14 @@ def all_pair_rates() -> dict[str, float]:
     return result
 
 
+def display_rows() -> list[dict[str, str]]:
+    """Курсы в виде списка строк для показа (в стиле обменника, с флагами)."""
+    return [
+        {"title": title, "value": _fmt_quote(_quotes[key]), "unit": unit}
+        for title, key, unit in _RATE_DISPLAY
+    ]
+
+
 # --- Форматирование и расчёт ----------------------------------------------
 
 
