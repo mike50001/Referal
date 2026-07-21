@@ -1,0 +1,20 @@
+# Секреты
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Логи и данные
+*.log
+logs/
+data/
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
