@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 
 from aiogram import F, Router
-from aiogram.filters import Command, CommandObject
+from aiogram.filters import Command, CommandObject, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
@@ -55,16 +55,20 @@ async def show_rates(message: Message, config: Config) -> None:
 
 # --- Изменение курсов: /setrate -------------------------------------------
 
+# Порядок ввода/показа: тенге→руб, руб→тенге, руб→бат, бат→руб.
 _SETRATE_STEPS = [
     (SetRates.kzt_give_kzt, "kzt_give_kzt",
      "1️⃣ Тенге → Рубль: сколько <b>тенге за 1 рубль</b>, когда клиент отдаёт ТЕНГЕ?"),
     (SetRates.kzt_give_rub, "kzt_give_rub",
      "2️⃣ Рубль → Тенге: сколько <b>тенге за 1 рубль</b>, когда клиент отдаёт РУБЛИ?"),
-    (SetRates.thb_give_thb, "thb_give_thb",
-     "3️⃣ Бат → Рубль: сколько <b>рублей за 1 бат</b>, когда клиент отдаёт БАТЫ?"),
     (SetRates.thb_give_rub, "thb_give_rub",
-     "4️⃣ Рубль → Бат: сколько <b>рублей за 1 бат</b>, когда клиент отдаёт РУБЛИ?"),
+     "3️⃣ Рубль → Бат: сколько <b>рублей за 1 бат</b>, когда клиент отдаёт РУБЛИ?"),
+    (SetRates.thb_give_thb, "thb_give_thb",
+     "4️⃣ Бат → Рубль: сколько <b>рублей за 1 бат</b>, когда клиент отдаёт БАТЫ?"),
 ]
+# Индекс шага по имени состояния — чтобы порядок задавался только списком выше.
+_STEP_INDEX = {st.state: i for i, (st, _, _) in enumerate(_SETRATE_STEPS)}
+_SETRATE_STATES = [st for st, _, _ in _SETRATE_STEPS]
 
 
 @router.message(Command("setrate"))
@@ -74,41 +78,47 @@ async def setrate_start(
     if not _is_admin_chat(message, config):
         return
 
-    # Быстрый путь: /setrate 6.2 5.6 2.3 2.55 (тенге→руб, руб→тенге, бат→руб, руб→бат)
+    # Быстрый путь: /setrate 6.0 5.6 2.55 2.33 (тенге→руб, руб→тенге, руб→бат, бат→руб)
     if command.args:
         parts = command.args.split()
-        if len(parts) == 4:
-            values = [_parse_rate(p) for p in parts]
-            if all(v is not None for v in values):
-                rates.set_quotes(*values)  # type: ignore[arg-type]
-                await state.clear()
-                await message.answer(
-                    "✅ Курсы обновлены!\n\n" + await rates.snapshot_text()
-                )
-                return
+        values = [_parse_rate(p) for p in parts] if len(parts) == 4 else []
+        if values and all(v is not None for v in values):
+            # values идут в порядке _SETRATE_STEPS; раскладываем по ключам.
+            by_key = {key: values[i] for i, (_, key, _) in enumerate(_SETRATE_STEPS)}
+            rates.set_quotes(
+                kzt_give_kzt=by_key["kzt_give_kzt"],
+                kzt_give_rub=by_key["kzt_give_rub"],
+                thb_give_thb=by_key["thb_give_thb"],
+                thb_give_rub=by_key["thb_give_rub"],
+            )
+            await state.clear()
+            await message.answer("✅ Курсы обновлены!\n\n" + await rates.snapshot_text())
+            return
         await message.answer(
-            "Формат: <code>/setrate 6.2 5.6 2.3 2.55</code>\n"
-            "(тенге→руб, руб→тенге, бат→руб, руб→бат)\n\n"
+            "Формат: <code>/setrate 6.0 5.6 2.55 2.33</code>\n"
+            "(тенге→руб, руб→тенге, руб→бат, бат→руб)\n\n"
             "Или отправьте просто /setrate — задам по шагам."
         )
         return
 
     # Пошаговый путь.
     quotes = rates.get_quotes()
-    await state.set_state(SetRates.kzt_give_kzt)
+    current = " / ".join(f"{quotes[key]:g}" for _, key, _ in _SETRATE_STEPS)
+    await state.set_state(_SETRATE_STATES[0])
     await message.answer(
         "Обновление курсов. Отправьте /cancel для отмены.\n\n"
-        f"Сейчас: {quotes['kzt_give_kzt']:g} / {quotes['kzt_give_rub']:g} / "
-        f"{quotes['thb_give_thb']:g} / {quotes['thb_give_rub']:g}\n\n"
-        + _SETRATE_STEPS[0][2]
+        f"Сейчас: {current}\n\n" + _SETRATE_STEPS[0][2]
     )
 
 
-async def _setrate_step(message: Message, state: FSMContext, index: int) -> None:
+@router.message(StateFilter(*_SETRATE_STATES))
+async def setrate_step(message: Message, state: FSMContext) -> None:
+    index = _STEP_INDEX[await state.get_state()]
     value = _parse_rate(message.text or "")
     if value is None:
-        await message.answer("Введите число больше нуля. Например: 6.2")
+        await message.answer("Введите число больше нуля. Например: 6.0")
         return
+
     _, key, _ = _SETRATE_STEPS[index]
     await state.update_data(**{key: value})
 
@@ -116,34 +126,15 @@ async def _setrate_step(message: Message, state: FSMContext, index: int) -> None
         next_state, _, prompt = _SETRATE_STEPS[index + 1]
         await state.set_state(next_state)
         await message.answer(prompt)
-    else:
-        data = await state.get_data()
-        rates.set_quotes(
-            data["kzt_give_kzt"], data["kzt_give_rub"],
-            data["thb_give_thb"], data["thb_give_rub"],
-        )
-        await state.clear()
-        await message.answer("✅ Курсы обновлены!\n\n" + await rates.snapshot_text())
+        return
 
-
-@router.message(SetRates.kzt_give_kzt)
-async def setrate_1(message: Message, state: FSMContext) -> None:
-    await _setrate_step(message, state, 0)
-
-
-@router.message(SetRates.kzt_give_rub)
-async def setrate_2(message: Message, state: FSMContext) -> None:
-    await _setrate_step(message, state, 1)
-
-
-@router.message(SetRates.thb_give_thb)
-async def setrate_3(message: Message, state: FSMContext) -> None:
-    await _setrate_step(message, state, 2)
-
-
-@router.message(SetRates.thb_give_rub)
-async def setrate_4(message: Message, state: FSMContext) -> None:
-    await _setrate_step(message, state, 3)
+    data = await state.get_data()
+    rates.set_quotes(
+        kzt_give_kzt=data["kzt_give_kzt"], kzt_give_rub=data["kzt_give_rub"],
+        thb_give_thb=data["thb_give_thb"], thb_give_rub=data["thb_give_rub"],
+    )
+    await state.clear()
+    await message.answer("✅ Курсы обновлены!\n\n" + await rates.snapshot_text())
 
 
 @router.message(F.reply_to_message)
