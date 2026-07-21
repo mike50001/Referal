@@ -23,9 +23,9 @@ _RATES_FILE = pathlib.Path(__file__).resolve().parent.parent / "rates_data.json"
 #   thb_give_rub — сколько РУБЛЕЙ за 1 БАТ, когда клиент отдаёт РУБЛИ (→ баты)
 QUOTE_KEYS = ("kzt_give_kzt", "kzt_give_rub", "thb_give_thb", "thb_give_rub")
 _quotes: dict[str, float] = {
-    "kzt_give_kzt": 6.2,
+    "kzt_give_kzt": 6.0,
     "kzt_give_rub": 5.6,
-    "thb_give_thb": 2.3,
+    "thb_give_thb": 2.33,
     "thb_give_rub": 2.55,
 }
 
