@@ -225,11 +225,11 @@ def _amount_lines(data: dict) -> str:
 
 
 def _rate_line(data: dict) -> str:
-    """Строка с текущим курсом, если он рассчитан."""
-    rate = data.get("est_rate")
-    if rate is None:
+    """Строка с курсом в записи обменника (например «6.2 тенге за 1 рубль»)."""
+    quote = rates.quote_text(data.get("give"), data.get("get"))
+    if not quote:
         return ""
-    return f"📈 Курс: 1 {data.get('give')} ≈ {rates.fmt(rate)} {data.get('get')}\n"
+    return f"📈 Курс: {quote}\n"
 
 
 async def _show_summary(message: Message, state: FSMContext, config: Config) -> None:
@@ -248,8 +248,8 @@ async def _show_summary(message: Message, state: FSMContext, config: Config) -> 
         data = await state.get_data()
 
     note = (
-        "<i>Курс ориентировочный, точную сумму подтвердит менеджер.</i>\n\n"
-        if data.get("est_rate") is not None
+        "<i>Итоговую сумму подтвердит менеджер.</i>\n\n"
+        if data.get("est_counter") is not None
         else ""
     )
     text = (

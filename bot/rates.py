@@ -38,6 +38,23 @@ _RATE_DISPLAY = [
     ("🇷🇺 Рубль → 🇹🇭 Бат", "thb_give_rub", "рублей за 1 бат"),
 ]
 
+# Курс в формате обменника для конкретного направления сделки.
+_QUOTE_FOR_PAIR = {
+    ("KZT", "RUB"): ("kzt_give_kzt", "тенге за 1 рубль"),
+    ("RUB", "KZT"): ("kzt_give_rub", "тенге за 1 рубль"),
+    ("THB", "RUB"): ("thb_give_thb", "рублей за 1 бат"),
+    ("RUB", "THB"): ("thb_give_rub", "рублей за 1 бат"),
+}
+
+
+def quote_text(give: str, get: str) -> str | None:
+    """Курс направления в записи обменника, напр. «6.2 тенге за 1 рубль»."""
+    item = _QUOTE_FOR_PAIR.get((give, get))
+    if item is None:
+        return None
+    key, unit = item
+    return f"{fmt(_quotes[key])} {unit}"
+
 
 # --- Хранилище курсов -----------------------------------------------------
 
