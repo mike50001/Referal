@@ -235,13 +235,12 @@ def _rate_line(data: dict) -> str:
 async def _show_summary(message: Message, state: FSMContext, config: Config) -> None:
     data = await state.get_data()
 
-    # Рассчитываем недостающую сторону по актуальному курсу (если API доступен).
+    # Рассчитываем недостающую сторону строго по курсу обменника.
     est = await rates.calculate(
         data.get("give"),
         data.get("get"),
         data.get("amount_value"),
         data.get("side", "give"),
-        config.markup_percent,
     )
     if est:
         await state.update_data(est_counter=est["counter"], est_rate=est["rate"])

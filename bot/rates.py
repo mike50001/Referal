@@ -139,13 +139,13 @@ async def calculate(
     get: str,
     amount: float | None,
     side: str,
-    markup_percent: float = 0.0,
 ) -> dict[str, float] | None:
-    """Считает недостающую сторону сделки по курсу обменника.
+    """Считает недостающую сторону сделки строго по курсу обменника.
 
     side == "give": клиент отдаёт `amount` в `give` → сколько получит в `get`.
     side == "get":  клиент хочет получить `amount` в `get` → сколько отдаст в `give`.
 
+    Никаких дополнительных наценок — только курс, заданный командой /setrate.
     Возвращает {"counter": сумма, "rate": курс_get_за_1_give} или None,
     если для пары нет заданного курса (тогда сумму назовёт менеджер).
     """
@@ -157,15 +157,12 @@ async def calculate(
         logger.info("Нет курса для пары %s/%s", give, get)
         return None
 
-    margin = markup_percent / 100.0
     if side == "get":
-        counter = (amount / rate) * (1 + margin)      # платит больше
-        effective_rate = rate / (1 + margin)
+        counter = amount / rate     # сколько отдать, чтобы получить amount
     else:
-        counter = amount * rate * (1 - margin)         # получает меньше
-        effective_rate = rate * (1 - margin)
+        counter = amount * rate     # сколько получить за amount
 
-    return {"counter": counter, "rate": effective_rate}
+    return {"counter": counter, "rate": rate}
 
 
 def _rates_lines() -> list[str]:
