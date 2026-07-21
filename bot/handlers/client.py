@@ -34,7 +34,6 @@ WELCOME = (
     "⚠️ <b>Остерегайтесь мошенников!</b>\n\n"
     "✅ Общайтесь только через официальный бот Misha Cash.\n"
     "📩 Если возникли вопросы — обращайтесь в поддержку.\n\n"
-    "💬 Чтобы начать заново или поменять валюту — напишите «привет».\n\n"
     "Спасибо за доверие! 💙\n"
     "Misha Cash 🚀"
 )
@@ -47,9 +46,7 @@ CLIENT_ID_MARKER = "ID клиента:"
 
 
 @router.message(CommandStart())
-@router.message(StateFilter("*"), F.text.casefold() == "привет")
 async def cmd_start(message: Message, state: FSMContext) -> None:
-    # «привет» работает как перезапуск в любой момент — удобно сменить валюту.
     await state.clear()
     await message.answer(WELCOME, reply_markup=start_keyboard())
 
