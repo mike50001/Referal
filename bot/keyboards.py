@@ -35,7 +35,7 @@ def start_keyboard() -> ReplyKeyboardMarkup:
     if _WEBAPP_URL:
         rows.append([
             KeyboardButton(
-                text="🧮 Калькулятор",
+                text="📱 Приложение",
                 web_app=WebAppInfo(url=_WEBAPP_URL),
             )
         ])
