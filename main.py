@@ -46,6 +46,31 @@ async def set_commands(bot: Bot, config: Config) -> None:
         logger.warning("Не удалось задать команды для админ-чата: %s", exc)
 
 
+# Текст на стартовом экране бота (виден в пустом чате до нажатия «Запустить»).
+BOT_DESCRIPTION = (
+    "💱 Обменник Misha Cash — быстрый и безопасный обмен валют: "
+    "рубль, тенге, бат, USDT.\n\n"
+    "⚡ Быстро   💵 Выгодный курс   🔒 Надёжно\n\n"
+    "Нажмите «Запустить», чтобы узнать актуальный курс, открыть калькулятор "
+    "и оставить заявку.\n\n"
+    "⚠️ Остерегайтесь мошенников — общайтесь только здесь.\n"
+    "💬 В любой момент напишите «привет», чтобы начать заново."
+)
+
+# Короткое описание в профиле бота.
+BOT_SHORT_DESCRIPTION = (
+    "💱 Misha Cash — обмен валют: рубль, тенге, бат, USDT. Быстро и надёжно."
+)
+
+
+async def set_profile(bot: Bot) -> None:
+    try:
+        await bot.set_my_description(description=BOT_DESCRIPTION)
+        await bot.set_my_short_description(short_description=BOT_SHORT_DESCRIPTION)
+    except Exception as exc:
+        logger.warning("Не удалось задать описание бота: %s", exc)
+
+
 async def main() -> None:
     config = load_config()
     rates.load()  # подгружаем сохранённые обменником курсы
@@ -63,6 +88,7 @@ async def main() -> None:
     dp.include_router(admin_router)
 
     await set_commands(bot, config)
+    await set_profile(bot)
     await bot.delete_webhook(drop_pending_updates=True)
 
     me = await bot.get_me()
