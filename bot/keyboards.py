@@ -4,7 +4,17 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardMarkup,
+    WebAppInfo,
 )
+
+# Публичный адрес Mini App; задаётся при старте из config.webapp_url.
+_WEBAPP_URL = ""
+
+
+def set_webapp_url(url: str) -> None:
+    global _WEBAPP_URL
+    _WEBAPP_URL = url or ""
+
 
 # Валюты для кнопок: (код, подпись на кнопке).
 # Код уходит в заявку менеджеру, подпись видит клиент.
@@ -18,11 +28,19 @@ CURRENCIES: list[tuple[str, str]] = [
 
 
 def start_keyboard() -> ReplyKeyboardMarkup:
+    rows = [
+        [KeyboardButton(text="💱 Оставить заявку на обмен")],
+        [KeyboardButton(text="📈 Узнать курс")],
+    ]
+    if _WEBAPP_URL:
+        rows.append([
+            KeyboardButton(
+                text="🧮 Калькулятор",
+                web_app=WebAppInfo(url=_WEBAPP_URL),
+            )
+        ])
     return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="💱 Оставить заявку на обмен")],
-            [KeyboardButton(text="📈 Узнать курс")],
-        ],
+        keyboard=rows,
         resize_keyboard=True,
     )
 

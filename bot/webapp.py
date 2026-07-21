@@ -81,6 +81,13 @@ PAGE = """<!doctype html>
   .rrow:last-child { border-bottom: none; }
   .rrow .v { font-weight: 800; font-size: 16px; }
   .rrow .u { color: #9c8a5c; font-size: 10.5px; margin-left: 4px; }
+  .submit {
+    display: block; width: 100%; margin-top: 16px; padding: 15px; border: none;
+    border-radius: 14px; font-size: 16px; font-weight: 800; color: #3a2a00; cursor: pointer;
+    background: linear-gradient(180deg,#fbe08a,#d4a017);
+    box-shadow: 0 8px 20px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.5);
+  }
+  .submit:active { transform: translateY(1px); }
   .muted { text-align: center; font-size: 12px; color: #9c8a5c; margin-top: 14px; }
 </style>
 </head>
@@ -110,6 +117,8 @@ PAGE = """<!doctype html>
         <div class="rate" id="rateline"></div>
       </div>
     </div>
+
+    <button class="submit" id="submit">📩 Оформить заявку</button>
 
     <div class="card">
       <label>📈 Курсы обменника</label>
@@ -174,6 +183,23 @@ PAGE = """<!doctype html>
   $("swap").addEventListener("click", () => {
     const g = giveSel.value; giveSel.value = getSel.value; getSel.value = g;
     calc();
+  });
+
+  $("submit").addEventListener("click", () => {
+    const give = giveSel.value, get = getSel.value;
+    const amount = parseFloat(($("amount").value || "").replace(/\\s/g, "").replace(",", "."));
+    if (!isFinite(amount) || amount <= 0) {
+      if (tg && tg.showAlert) tg.showAlert("Введите сумму больше нуля.");
+      return;
+    }
+    const rate = PAIRS[give + "_" + get];
+    const result = (give !== get && rate !== undefined) ? amount * rate : null;
+    const payload = JSON.stringify({ type: "order", give, get, amount, result });
+    if (tg && tg.sendData) {
+      tg.sendData(payload);   // отправит боту и закроет приложение
+    } else {
+      alert("Оформление заявки работает только внутри Telegram.");
+    }
   });
   ["input", "change"].forEach(ev => {
     $("amount").addEventListener(ev, calc);

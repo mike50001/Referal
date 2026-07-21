@@ -9,7 +9,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.types import BotCommand, BotCommandScopeChat
 
-from bot import rates
+from bot import keyboards, rates
 from bot.config import Config, load_config
 from bot.handlers import admin_router, client_router
 from bot.webapp import start_webapp
@@ -49,6 +49,7 @@ async def set_commands(bot: Bot, config: Config) -> None:
 async def main() -> None:
     config = load_config()
     rates.load()  # подгружаем сохранённые обменником курсы
+    keyboards.set_webapp_url(config.webapp_url)  # кнопка Mini App, если задан URL
 
     bot = Bot(
         token=config.bot_token,

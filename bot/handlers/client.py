@@ -1,6 +1,8 @@
 """Хендлеры клиентской части: приветствие и сбор заявки на обмен."""
 from __future__ import annotations
 
+import json
+
 from aiogram import F, Router
 from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -63,6 +65,51 @@ async def cmd_cancel(message: Message, state: FSMContext) -> None:
 @router.message(Command("rate"))
 async def show_rate(message: Message) -> None:
     await message.answer(await rates.client_rates_text())
+
+
+@router.message(F.web_app_data)
+async def webapp_order(message: Message, state: FSMContext, config: Config) -> None:
+    """Заявка, отправленная из Mini App (калькулятора)."""
+    await state.clear()
+    try:
+        data = json.loads(message.web_app_data.data)
+    except (ValueError, TypeError):
+        return
+
+    give, get = data.get("give"), data.get("get")
+    amount, result = data.get("amount"), data.get("result")
+    if not give or not get or amount is None:
+        return
+
+    user = message.from_user
+    username_part = f" (@{user.username})" if user.username else ""
+    receive = f"≈ <b>{rates.fmt(float(result))} {get}</b>" if result is not None \
+        else f"<b>{get}</b> <i>(рассчитает менеджер)</i>"
+    quote = rates.quote_text(give, get)
+    rate_line = f"📈 Курс: {quote}\n" if quote else ""
+
+    admin_text = (
+        "🆕 <b>Новая заявка (калькулятор)</b>\n\n"
+        f"👤 Клиент: <a href=\"tg://user?id={user.id}\">{user.full_name}</a>"
+        f"{username_part}\n"
+        f"💸 Отдаёт: <b>{rates.fmt(float(amount))} {give}</b>\n"
+        f"💰 Получает: {receive}\n"
+        f"{rate_line}"
+        f"{CLIENT_ID_MARKER} {user.id}\n"
+        "↩️ Чтобы ответить клиенту — ответьте (reply) на это сообщение."
+    )
+
+    try:
+        await message.bot.send_message(config.admin_chat_id, admin_text)
+    except Exception:
+        await message.answer("⚠️ Не удалось отправить заявку. Попробуйте позже.")
+        return
+
+    await message.answer(
+        "✅ Спасибо! Ваша заявка принята.\n"
+        "Менеджер скоро свяжется с вами.",
+        reply_markup=start_keyboard(),
+    )
 
 
 @router.message(F.text == "💱 Оставить заявку на обмен")

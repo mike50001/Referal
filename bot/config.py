@@ -14,6 +14,7 @@ class Config:
     bot_token: str
     admin_chat_id: int
     admin_ids: set[int] = field(default_factory=set)
+    webapp_url: str = ""  # публичный адрес Mini App (Railway domain)
 
     def is_admin(self, user_id: int) -> bool:
         """Может ли пользователь отвечать клиентам.
@@ -54,8 +55,11 @@ def load_config() -> Config:
     except ValueError as exc:
         raise RuntimeError("ADMIN_CHAT_ID должен быть числом.") from exc
 
+    webapp_url = os.getenv("WEBAPP_URL", "").strip().rstrip("/")
+
     return Config(
         bot_token=token,
         admin_chat_id=admin_chat_id,
         admin_ids=_parse_admin_ids(os.getenv("ADMIN_IDS")),
+        webapp_url=webapp_url,
     )
