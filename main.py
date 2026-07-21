@@ -12,6 +12,7 @@ from aiogram.types import BotCommand, BotCommandScopeChat
 from bot import rates
 from bot.config import Config, load_config
 from bot.handlers import admin_router, client_router
+from bot.webapp import start_webapp
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,8 +67,14 @@ async def main() -> None:
     me = await bot.get_me()
     logger.info("Бот @%s запущен. Заявки уходят в чат %s", me.username, config.admin_chat_id)
 
-    # config прокидывается во все хендлеры как именованный аргумент.
-    await dp.start_polling(bot, config=config)
+    # Веб-сервер Mini App (калькулятор) — в том же процессе.
+    web_runner = await start_webapp()
+
+    try:
+        # config прокидывается во все хендлеры как именованный аргумент.
+        await dp.start_polling(bot, config=config)
+    finally:
+        await web_runner.cleanup()
 
 
 if __name__ == "__main__":

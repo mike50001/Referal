@@ -116,6 +116,20 @@ def _pair_rate(give: str, get: str) -> float | None:
     return None
 
 
+# Пары, доступные в калькуляторе Mini App.
+SUPPORTED_PAIRS = [("KZT", "RUB"), ("RUB", "KZT"), ("RUB", "THB"), ("THB", "RUB")]
+
+
+def all_pair_rates() -> dict[str, float]:
+    """Все заданные курсы в виде {'KZT_RUB': курс, ...} — для Mini App."""
+    result: dict[str, float] = {}
+    for give, get in SUPPORTED_PAIRS:
+        rate = _pair_rate(give, get)
+        if rate is not None:
+            result[f"{give}_{get}"] = rate
+    return result
+
+
 # --- Форматирование и расчёт ----------------------------------------------
 
 
