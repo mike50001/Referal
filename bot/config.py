@@ -56,6 +56,12 @@ def load_config() -> Config:
         raise RuntimeError("ADMIN_CHAT_ID должен быть числом.") from exc
 
     webapp_url = os.getenv("WEBAPP_URL", "").strip().rstrip("/")
+    if webapp_url:
+        # Telegram принимает только HTTPS-адреса Web App — нормализуем.
+        if webapp_url.startswith("http://"):
+            webapp_url = "https://" + webapp_url[len("http://"):]
+        elif not webapp_url.startswith("https://"):
+            webapp_url = "https://" + webapp_url
 
     return Config(
         bot_token=token,

@@ -32,7 +32,7 @@ def start_keyboard() -> ReplyKeyboardMarkup:
         [KeyboardButton(text="💱 Оставить заявку на обмен")],
         [KeyboardButton(text="📈 Узнать курс")],
     ]
-    if _WEBAPP_URL:
+    if _WEBAPP_URL.startswith("https://"):
         rows.append([
             KeyboardButton(
                 text="📱 Приложение",
