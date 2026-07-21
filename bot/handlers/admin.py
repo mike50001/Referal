@@ -20,7 +20,8 @@ from bot.states import SetRates
 router = Router(name="admin")
 
 # Импортируем внутри модуля клиента, чтобы избежать цикла импорта на уровне модуля.
-from bot.handlers.client import CLIENT_ID_MARKER  # noqa: E402
+from bot.handlers.client import CLIENT_ID_MARKER, WELCOME  # noqa: E402
+from bot.keyboards import start_keyboard  # noqa: E402
 
 _CLIENT_ID_RE = re.compile(re.escape(CLIENT_ID_MARKER) + r"\s*(\d+)")
 
@@ -170,3 +171,13 @@ async def reply_to_client(message: Message, config: Config) -> None:
         return
 
     await message.reply("✅ Ответ отправлен клиенту.")
+
+
+# Заглушка последним: любое необработанное сообщение клиента в личке
+# возвращает приветствие и меню. Это спасает, когда клиент удалил чат и
+# не видит кнопку «Запустить» — достаточно написать боту что угодно.
+@router.message(StateFilter(None), F.chat.type == "private")
+async def fallback_greeting(message: Message, config: Config) -> None:
+    if message.chat.id == config.admin_chat_id:
+        return  # чат заявок не трогаем
+    await message.answer(WELCOME, reply_markup=start_keyboard())
