@@ -6,9 +6,13 @@
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
 import logging
 import os
 import pathlib
+from urllib.parse import parse_qsl
 
 from aiohttp import web
 
@@ -194,12 +198,33 @@ PAGE = """<!doctype html>
     }
     const rate = PAIRS[give + "_" + get];
     const result = (give !== get && rate !== undefined) ? amount * rate : null;
-    const payload = JSON.stringify({ type: "order", give, get, amount, result });
-    if (tg && tg.sendData) {
-      tg.sendData(payload);   // отправит боту и закроет приложение
-    } else {
+
+    if (!tg || !tg.initData) {
       alert("Оформление заявки работает только внутри Telegram.");
+      return;
     }
+    const btn = $("submit"); btn.disabled = true; const old = btn.textContent;
+    btn.textContent = "Отправляем…";
+    fetch("/api/order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData: tg.initData, give, get, amount, result })
+    })
+    .then(r => r.json())
+    .then(j => {
+      if (j.ok) {
+        const done = () => { if (tg.close) tg.close(); };
+        if (tg.showAlert) tg.showAlert("✅ Заявка отправлена! Менеджер свяжется с вами.", done);
+        else { alert("Заявка отправлена!"); done(); }
+      } else {
+        (tg.showAlert || alert)("Не удалось отправить заявку. Попробуйте позже.");
+        btn.disabled = false; btn.textContent = old;
+      }
+    })
+    .catch(() => {
+      (tg.showAlert || alert)("Ошибка сети. Попробуйте позже.");
+      btn.disabled = false; btn.textContent = old;
+    });
   });
   ["input", "change"].forEach(ev => {
     $("amount").addEventListener(ev, calc);
@@ -251,19 +276,91 @@ async def handle_health(request: web.Request) -> web.Response:
     return web.Response(text="ok")
 
 
-def create_app() -> web.Application:
+def _validate_init_data(init_data: str, bot_token: str) -> dict | None:
+    """Проверяет подпись Telegram WebApp initData. Возвращает данные user или None."""
+    if not init_data:
+        return None
+    try:
+        parsed = dict(parse_qsl(init_data, keep_blank_values=True))
+    except Exception:
+        return None
+    received_hash = parsed.pop("hash", None)
+    if not received_hash:
+        return None
+    data_check = "\n".join(f"{k}={parsed[k]}" for k in sorted(parsed))
+    secret = hmac.new(b"WebAppData", bot_token.encode(), hashlib.sha256).digest()
+    computed = hmac.new(secret, data_check.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(computed, received_hash):
+        return None
+    try:
+        return json.loads(parsed.get("user", ""))
+    except Exception:
+        return None
+
+
+async def handle_order(request: web.Request) -> web.Response:
+    """Заявка из Mini App: проверяем подпись и шлём менеджеру."""
+    from bot.handlers.client import CLIENT_ID_MARKER
+
+    bot = request.app["bot"]
+    config = request.app["config"]
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"ok": False, "error": "bad_json"}, status=400)
+
+    user = _validate_init_data(body.get("initData", ""), config.bot_token)
+    if not user:
+        return web.json_response({"ok": False, "error": "auth"}, status=403)
+
+    give, get = body.get("give"), body.get("get")
+    amount, result = body.get("amount"), body.get("result")
+    if not give or not get or amount is None:
+        return web.json_response({"ok": False, "error": "data"}, status=400)
+
+    uid = user.get("id")
+    name = user.get("first_name") or "клиент"
+    uname = user.get("username")
+    username_part = f" (@{uname})" if uname else ""
+    receive = (
+        f"≈ <b>{rates.fmt(float(result))} {get}</b>" if result is not None
+        else f"<b>{get}</b> <i>(рассчитает менеджер)</i>"
+    )
+    quote = rates.quote_text(give, get)
+    rate_line = f"📈 Курс: {quote}\n" if quote else ""
+
+    text = (
+        "🆕 <b>Новая заявка (приложение)</b>\n\n"
+        f"👤 Клиент: <a href=\"tg://user?id={uid}\">{name}</a>{username_part}\n"
+        f"💸 Отдаёт: <b>{rates.fmt(float(amount))} {give}</b>\n"
+        f"💰 Получает: {receive}\n"
+        f"{rate_line}"
+        f"{CLIENT_ID_MARKER} {uid}\n"
+        "↩️ Чтобы ответить клиенту — ответьте (reply) на это сообщение."
+    )
+    try:
+        await bot.send_message(config.admin_chat_id, text)
+    except Exception:
+        return web.json_response({"ok": False, "error": "send"}, status=500)
+    return web.json_response({"ok": True})
+
+
+def create_app(bot=None, config=None) -> web.Application:
     app = web.Application()
+    app["bot"] = bot
+    app["config"] = config
     app.router.add_get("/", handle_index)
     app.router.add_get("/app", handle_index)
     app.router.add_get("/api/rates", handle_rates)
+    app.router.add_post("/api/order", handle_order)
     app.router.add_get("/bg.png", handle_bg)
     app.router.add_get("/health", handle_health)
     return app
 
 
-async def start_webapp() -> web.AppRunner:
+async def start_webapp(bot=None, config=None) -> web.AppRunner:
     """Запускает веб-сервер и возвращает runner (для последующей остановки)."""
-    runner = web.AppRunner(create_app())
+    runner = web.AppRunner(create_app(bot, config))
     await runner.setup()
     port = int(os.getenv("PORT", "8080"))
     site = web.TCPSite(runner, "0.0.0.0", port)

@@ -69,7 +69,7 @@ async def main() -> None:
     logger.info("Бот @%s запущен. Заявки уходят в чат %s", me.username, config.admin_chat_id)
 
     # Веб-сервер Mini App (калькулятор) — в том же процессе.
-    web_runner = await start_webapp()
+    web_runner = await start_webapp(bot, config)
 
     try:
         # config прокидывается во все хендлеры как именованный аргумент.
