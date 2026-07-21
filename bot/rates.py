@@ -47,13 +47,21 @@ _QUOTE_FOR_PAIR = {
 }
 
 
+def _fmt_quote(value: float) -> str:
+    """Формат курса: сохраняет десятичную часть (6 → «6.0», 5.6 → «5.6»)."""
+    text = f"{value:.4f}".rstrip("0")
+    if text.endswith("."):
+        text += "0"
+    return text
+
+
 def quote_text(give: str, get: str) -> str | None:
-    """Курс направления в записи обменника, напр. «6.2 тенге за 1 рубль»."""
+    """Курс направления в записи обменника, напр. «6.0 тенге за 1 рубль»."""
     item = _QUOTE_FOR_PAIR.get((give, get))
     if item is None:
         return None
     key, unit = item
-    return f"{fmt(_quotes[key])} {unit}"
+    return f"{_fmt_quote(_quotes[key])} {unit}"
 
 
 # --- Хранилище курсов -----------------------------------------------------
@@ -162,7 +170,7 @@ async def calculate(
 
 def _rates_lines() -> list[str]:
     return [
-        f"• {title}: <b>{fmt(_quotes[key])}</b> ({unit})"
+        f"• {title}: <b>{_fmt_quote(_quotes[key])}</b> ({unit})"
         for title, key, unit in _RATE_DISPLAY
     ]
 
