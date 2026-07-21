@@ -23,67 +23,83 @@ PAGE = """<!doctype html>
 <title>Misha Cash — калькулятор</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-  :root {
-    --bg: var(--tg-theme-bg-color, #0f1115);
-    --card: var(--tg-theme-secondary-bg-color, #1b1e26);
-    --text: var(--tg-theme-text-color, #ffffff);
-    --hint: var(--tg-theme-hint-color, #8a8f98);
-    --accent: var(--tg-theme-button-color, #2ea6ff);
-    --accent-text: var(--tg-theme-button-text-color, #ffffff);
-  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
-    margin: 0; padding: 16px;
+    margin: 0; padding: 18px; min-height: 100vh;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: var(--bg); color: var(--text);
+    color: #f4ead0;
+    background:
+      radial-gradient(130% 70% at 50% -8%, rgba(255,190,80,.18), rgba(0,0,0,0) 55%),
+      radial-gradient(120% 90% at 50% 0%, #0e3b3f 0%, #0a2226 42%, #05100f 100%);
+    background-attachment: fixed;
   }
-  h1 { font-size: 20px; margin: 4px 0 16px; text-align: center; }
-  .brand { color: var(--accent); }
-  .card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
-  label { display: block; font-size: 13px; color: var(--hint); margin-bottom: 8px; }
+  .wrap { max-width: 460px; margin: 0 auto; }
+  .frame {
+    border-radius: 22px; padding: 18px 16px 16px;
+    background: linear-gradient(180deg, rgba(12,28,30,.72), rgba(6,16,18,.82));
+    border: 1px solid rgba(232,184,64,.38);
+    box-shadow: 0 18px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,220,150,.08);
+  }
+  .gold {
+    background: linear-gradient(180deg,#fdefb0 0%,#e9c15a 45%,#c8971f 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  h1 { text-align: center; font-size: 27px; font-weight: 800; letter-spacing: .5px; margin: 2px 0 3px; }
+  .sub { display: block; text-align: center; font-size: 12px; letter-spacing: 5px; margin-bottom: 4px; }
+  .card {
+    background: rgba(6,18,20,.6); border: 1px solid rgba(232,184,64,.28);
+    border-radius: 16px; padding: 14px; margin-top: 14px;
+  }
+  label { display: block; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #b89a5c; margin-bottom: 9px; }
   .row { display: flex; gap: 10px; align-items: center; }
   input, select {
-    width: 100%; padding: 14px; border-radius: 12px; border: none;
-    background: var(--bg); color: var(--text); font-size: 18px; outline: none;
+    width: 100%; padding: 14px; border-radius: 12px; font-size: 18px; outline: none;
+    border: 1px solid rgba(232,184,64,.25); background: rgba(0,0,0,.35); color: #fff;
   }
-  select { appearance: none; -webkit-appearance: none; }
-  input:focus, select:focus { box-shadow: 0 0 0 2px var(--accent); }
+  select { appearance: none; -webkit-appearance: none; font-weight: 600; }
+  input:focus, select:focus { border-color: #e8b840; box-shadow: 0 0 0 2px rgba(232,184,64,.35); }
   .swap {
-    display: block; margin: 6px auto; width: 44px; height: 44px; border-radius: 50%;
-    border: none; background: var(--accent); color: var(--accent-text);
-    font-size: 20px; cursor: pointer;
+    display: block; margin: -8px auto; width: 46px; height: 46px; border-radius: 50%;
+    border: none; cursor: pointer; font-size: 20px; color: #3a2a00; font-weight: 800;
+    background: linear-gradient(180deg,#fbe08a,#d4a017); position: relative; z-index: 2;
+    box-shadow: 0 6px 16px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.5);
   }
-  .result { text-align: center; padding: 6px 0; }
-  .result .big { font-size: 30px; font-weight: 700; }
-  .result .rate { font-size: 13px; color: var(--hint); margin-top: 6px; }
-  .muted { color: var(--hint); font-size: 13px; text-align: center; margin-top: 4px; }
+  .result { text-align: center; padding: 8px 0 2px; }
+  .result .big { font-size: 33px; font-weight: 800; }
+  .result .rate { font-size: 12.5px; color: #b89a5c; margin-top: 6px; }
+  .muted { text-align: center; font-size: 12px; color: #9c8a5c; margin-top: 14px; }
 </style>
 </head>
 <body>
-  <h1>💱 <span class="brand">Misha Cash</span> — калькулятор</h1>
+  <div class="wrap">
+   <div class="frame">
+    <h1><span class="gold">MISHA CASH</span></h1>
+    <div class="sub">🌴 <span class="gold">ОБМЕН&nbsp;ВАЛЮТ</span> 🌴</div>
 
-  <div class="card">
-    <label>Отдаёте</label>
-    <div class="row">
-      <input id="amount" type="text" inputmode="decimal" value="1000" placeholder="Сумма">
-      <select id="give"></select>
+    <div class="card">
+      <label>Отдаёте</label>
+      <div class="row">
+        <input id="amount" type="text" inputmode="decimal" value="1000" placeholder="Сумма">
+        <select id="give"></select>
+      </div>
     </div>
+
+    <button class="swap" id="swap" title="Поменять">⇅</button>
+
+    <div class="card">
+      <label>Получаете</label>
+      <div class="row">
+        <select id="get" style="flex:0 0 auto; width:150px;"></select>
+      </div>
+      <div class="result">
+        <div class="big gold" id="out">—</div>
+        <div class="rate" id="rateline"></div>
+      </div>
+    </div>
+
+    <div class="muted" id="hint">Загрузка курсов…</div>
+   </div>
   </div>
-
-  <button class="swap" id="swap" title="Поменять">⇅</button>
-
-  <div class="card">
-    <label>Получаете</label>
-    <div class="row">
-      <select id="get" style="flex:0 0 auto; width:130px;"></select>
-    </div>
-    <div class="result">
-      <div class="big" id="out">—</div>
-      <div class="rate" id="rateline"></div>
-    </div>
-  </div>
-
-  <div class="muted" id="hint">Загрузка курсов…</div>
 
 <script>
   const LABELS = { RUB: "🇷🇺 Рубль", KZT: "🇰🇿 Тенге", THB: "🇹🇭 Бат" };
