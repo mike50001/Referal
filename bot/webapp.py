@@ -198,11 +198,21 @@ PAGE = """<!doctype html>
     }
     const rate = PAIRS[give + "_" + get];
     const result = (give !== get && rate !== undefined) ? amount * rate : null;
+    const order = { type: "order", give, get, amount, result };
 
-    if (!tg || !tg.initData) {
+    if (!tg) {
       alert("Оформление заявки работает только внутри Telegram.");
       return;
     }
+
+    // Открыто через кнопку в боте (reply): initData пустой — шлём через sendData.
+    if (!tg.initData) {
+      if (tg.sendData) { tg.sendData(JSON.stringify(order)); }  // закроет приложение
+      else { alert("Откройте приложение через кнопку в боте."); }
+      return;
+    }
+
+    // Открыто через меню/ссылку: есть initData — шлём на сервер с проверкой подписи.
     const btn = $("submit"); btn.disabled = true; const old = btn.textContent;
     btn.textContent = "Отправляем…";
     fetch("/api/order", {
