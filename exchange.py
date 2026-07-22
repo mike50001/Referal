@@ -107,9 +107,11 @@ class BinanceFutures:
 
     # ---------- рыночные данные ----------
 
-    def get_klines(self, limit: int = 200) -> pd.DataFrame:
+    def get_klines(self, limit: int = 200, interval: str | None = None) -> pd.DataFrame:
         raw = self.client.futures_klines(
-            symbol=self.cfg.symbol, interval=self.cfg.interval, limit=limit
+            symbol=self.cfg.symbol,
+            interval=interval or self.cfg.interval,
+            limit=limit,
         )
         df = pd.DataFrame(
             raw,
@@ -125,6 +127,27 @@ class BinanceFutures:
         df = df.set_index("close_time")
         # Отбрасываем последнюю (ещё формирующуюся) свечу.
         return df.iloc[:-1]
+
+    def get_trend(self) -> str:
+        """Направление тренда на старшем ТФ по EMA: 'LONG', 'SHORT' или 'FLAT'.
+
+        Цена выше EMA(trend_ema) -> восходящий (разрешён long),
+        ниже -> нисходящий (разрешён short).
+        """
+        from indicators import ema  # локальный импорт, чтобы избежать циклов
+
+        need = self.cfg.trend_ema + 5
+        df = self.get_klines(limit=max(need, 210), interval=self.cfg.trend_interval)
+        if len(df) < self.cfg.trend_ema:
+            return "FLAT"
+        ema_line = ema(df["close"], self.cfg.trend_ema)
+        price = float(df["close"].iloc[-1])
+        e = float(ema_line.iloc[-1])
+        if price > e:
+            return "LONG"
+        if price < e:
+            return "SHORT"
+        return "FLAT"
 
     def get_price(self) -> float:
         t = self.client.futures_symbol_ticker(symbol=self.cfg.symbol)

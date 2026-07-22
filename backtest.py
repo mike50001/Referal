@@ -1,10 +1,11 @@
-"""Простой бэктест стратегии EMA/RSI на исторических свечах Binance.
+"""Простой бэктест стратегий на исторических свечах Binance.
 
 Скачивает публичные свечи (ключи API не нужны) и прогоняет ту же стратегию,
-что и живой бот. Учитывает SL/TP и комиссию.
+что и живой бот. Учитывает SL/TP (в т.ч. ATR) и комиссию.
 
 Запуск:
     python backtest.py --symbol BTCUSDT --interval 1h --limit 1000
+    python backtest.py --strategy fast_rsi --interval 15m
 """
 from __future__ import annotations
 
@@ -14,8 +15,9 @@ import pandas as pd
 from binance.client import Client
 
 from config import Config
+from indicators import atr as atr_indicator
 from risk import RiskManager
-from strategy import EmaRsiStrategy, Signal
+from strategy import Signal, build_strategy
 
 
 def fetch_klines(symbol: str, interval: str, limit: int) -> pd.DataFrame:
@@ -36,9 +38,11 @@ def fetch_klines(symbol: str, interval: str, limit: int) -> pd.DataFrame:
 
 
 def run_backtest(cfg: Config, df: pd.DataFrame, fee: float = 0.0004) -> None:
-    strat = EmaRsiStrategy(cfg)
+    strat = build_strategy(cfg)
     risk = RiskManager(cfg)
     min_bars = strat.min_bars()
+
+    atr_series = atr_indicator(df, cfg.atr_period) if cfg.use_atr_stop else None
 
     balance = 1000.0
     start_balance = balance
@@ -82,7 +86,8 @@ def run_backtest(cfg: Config, df: pd.DataFrame, fee: float = 0.0004) -> None:
             wins += 1 if pnl > 0 else 0
             position = None
         elif decision.signal in (Signal.LONG, Signal.SHORT) and position is None:
-            plan = risk.build_plan(decision.signal.value, decision.price, balance)
+            atr_val = float(atr_series.iloc[i]) if atr_series is not None else None
+            plan = risk.build_plan(decision.signal.value, decision.price, balance, atr=atr_val)
             if plan.quantity > 0:
                 position = {
                     "side": decision.signal.value,
@@ -95,7 +100,9 @@ def run_backtest(cfg: Config, df: pd.DataFrame, fee: float = 0.0004) -> None:
     pnl_total = balance - start_balance
     winrate = (wins / trades * 100) if trades else 0.0
     print("=" * 50)
+    print(f"Стратегия:     {cfg.strategy}")
     print(f"Символ:        {cfg.symbol} {cfg.interval}")
+    print(f"ATR-стоп:      {cfg.use_atr_stop}")
     print(f"Свечей:        {len(df)}")
     print(f"Сделок:        {trades}")
     print(f"Прибыльных:    {wins} ({winrate:.1f}%)")
@@ -116,9 +123,10 @@ def _pnl(position: dict, exit_price: float, fee: float) -> float:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Бэктест стратегии EMA/RSI")
+    p = argparse.ArgumentParser(description="Бэктест торговых стратегий")
     p.add_argument("--symbol", default=None)
     p.add_argument("--interval", default=None)
+    p.add_argument("--strategy", default=None, choices=["ema_rsi", "fast_rsi"])
     p.add_argument("--limit", type=int, default=1000)
     args = p.parse_args()
 
@@ -131,6 +139,8 @@ def main() -> None:
         cfg.symbol = args.symbol.upper()
     if args.interval:
         cfg.interval = args.interval
+    if args.strategy:
+        cfg.strategy = args.strategy
 
     df = fetch_klines(cfg.symbol, cfg.interval, args.limit)
     run_backtest(cfg, df)

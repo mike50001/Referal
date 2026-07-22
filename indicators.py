@@ -1,4 +1,4 @@
-"""Технические индикаторы на pandas: EMA и RSI."""
+"""Технические индикаторы на pandas: EMA, RSI, ATR."""
 from __future__ import annotations
 
 import pandas as pd
@@ -24,3 +24,24 @@ def rsi(series: pd.Series, period: int = 14) -> pd.Series:
     # Когда потерь нет, RSI = 100.
     result = result.where(avg_loss != 0, 100.0)
     return result
+
+
+def true_range(df: pd.DataFrame) -> pd.Series:
+    """Истинный диапазон (True Range) по свечам high/low/close."""
+    high, low, close = df["high"], df["low"], df["close"]
+    prev_close = close.shift(1)
+    tr = pd.concat(
+        [
+            high - low,
+            (high - prev_close).abs(),
+            (low - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    return tr
+
+
+def atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
+    """Средний истинный диапазон (Wilder's ATR)."""
+    tr = true_range(df)
+    return tr.ewm(alpha=1 / period, min_periods=period, adjust=False).mean()
