@@ -32,10 +32,11 @@ class BinanceFutures:
             cfg.api_secret,
             testnet=cfg.use_testnet,
         )
-        # python-binance сам подставляет testnet URL при testnet=True,
-        # но зафиксируем явно для futures.
+        # Binance перенёс фьючерсный тестнет на demo-fapi.binance.com
+        # (старый testnet.binancefuture.com устарел). Адрес настраивается
+        # через TESTNET_BASE_URL в .env на случай очередного переезда.
         if cfg.use_testnet:
-            self.client.FUTURES_URL = "https://testnet.binancefuture.com/fapi"
+            self.client.FUTURES_URL = cfg.testnet_base_url + "/fapi"
 
         self._step_size: float = 0.0
         self._tick_size: float = 0.0

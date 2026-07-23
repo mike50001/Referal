@@ -32,6 +32,7 @@ class Config:
     api_key: str
     api_secret: str
     use_testnet: bool
+    testnet_base_url: str
 
     # Рынок
     symbol: str
@@ -82,6 +83,9 @@ class Config:
             api_key=os.getenv("BINANCE_API_KEY", ""),
             api_secret=os.getenv("BINANCE_API_SECRET", ""),
             use_testnet=_get_bool("USE_TESTNET", True),
+            testnet_base_url=os.getenv(
+                "TESTNET_BASE_URL", "https://demo-fapi.binance.com"
+            ).rstrip("/"),
             symbol=os.getenv("SYMBOL", "BTCUSDT").upper(),
             interval=os.getenv("INTERVAL", "15m"),
             leverage=_get_int("LEVERAGE", 3),
