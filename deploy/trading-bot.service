@@ -1,0 +1,21 @@
+# systemd-юнит для автозапуска бота на сервере.
+# Копируется в /etc/systemd/system/trading-bot.service
+# (см. docs/deploy-vps.md)
+
+[Unit]
+Description=Binance Futures Trading Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/referal
+ExecStart=/root/referal/.venv/bin/python bot.py
+Restart=on-failure
+RestartSec=10
+# Перезапускать не чаще 5 раз за 60 сек, иначе остановиться (защита от циклов краша)
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Install]
+WantedBy=multi-user.target
