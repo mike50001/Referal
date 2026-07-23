@@ -1,4 +1,6 @@
-python-binance==1.0.19
-pandas==2.2.2
-numpy==1.26.4
-python-dotenv==1.0.1
+# Диапазоны версий, чтобы pip подобрал совместимые сборки
+# под установленный Python (в т.ч. новый 3.13/3.14).
+python-binance>=1.0.19
+pandas>=2.2
+numpy>=1.26
+python-dotenv>=1.0
