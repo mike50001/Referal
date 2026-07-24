@@ -150,8 +150,8 @@ PAGE = """<!doctype html>
       sel.appendChild(o);
     }
   }
-  giveSel.value = "RUB";
-  getSel.value = "KZT";
+  giveSel.value = "KZT";
+  getSel.value = "RUB";
 
   function fmt(v) {
     if (!isFinite(v)) return "—";
