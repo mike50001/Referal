@@ -304,6 +304,7 @@ async def _show_summary(message: Message, state: FSMContext, config: Config) -> 
         f"{_rate_line(data)}"
         f"📞 Контакт: <b>{data.get('contact')}</b>\n\n"
         f"{note}"
+        "⏱ После отправки менеджер ответит в течение 10 минут.\n\n"
         "Всё верно?"
     )
     await state.set_state(ExchangeForm.confirm)
