@@ -105,7 +105,7 @@ PAGE = """<!doctype html>
     <div class="card">
       <label>Отдаёте</label>
       <div class="row">
-        <input id="amountGive" type="text" inputmode="decimal" value="1000" placeholder="Сумма">
+        <input id="amountGive" type="text" inputmode="decimal" placeholder="Сумма">
         <select id="give"></select>
       </div>
     </div>
@@ -115,7 +115,7 @@ PAGE = """<!doctype html>
     <div class="card">
       <label>Получаете</label>
       <div class="row">
-        <input id="amountGet" type="text" inputmode="decimal" placeholder="Сумма">
+        <input id="amountGet" type="text" inputmode="decimal" value="1000" placeholder="Сумма">
         <select id="get"></select>
       </div>
       <div class="ratenote" id="rateline"></div>
@@ -161,7 +161,7 @@ PAGE = """<!doctype html>
   }
 
   const amtGive = $("amountGive"), amtGet = $("amountGet");
-  let lastEdited = "give";
+  let lastEdited = "get";  // изначально задаём сумму к получению (1000 ₽)
 
   function parseAmt(v) { return parseFloat((v || "").replace(/\\s/g, "").replace(",", ".")); }
 
