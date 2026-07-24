@@ -1,0 +1,4 @@
+# Доп. зависимости только для ML-исследования (ml/).
+# Ставить отдельно: pip install -r ml/requirements-ml.txt
+lightgbm>=4.0
+scikit-learn>=1.3
