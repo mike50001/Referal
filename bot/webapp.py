@@ -224,8 +224,8 @@ PAGE = """<!doctype html>
     .then(j => {
       if (j.ok) {
         const done = () => { if (tg.close) tg.close(); };
-        if (tg.showAlert) tg.showAlert("✅ Заявка отправлена! Менеджер свяжется с вами.", done);
-        else { alert("Заявка отправлена!"); done(); }
+        if (tg.showAlert) tg.showAlert("✅ Заявка отправлена! Менеджер ответит в течение 10 минут.", done);
+        else { alert("Заявка отправлена! Менеджер ответит в течение 10 минут."); done(); }
       } else {
         (tg.showAlert || alert)("Не удалось отправить заявку. Попробуйте позже.");
         btn.disabled = false; btn.textContent = old;
@@ -255,7 +255,7 @@ PAGE = """<!doctype html>
     .then(data => {
       PAIRS = data.pairs || {};
       renderRates(data.rows);
-      $("hint").textContent = "Курс ориентировочный. Для заявки вернитесь в бот.";
+      $("hint").textContent = "Курс ориентировочный. После заявки менеджер ответит в течение 10 минут.";
       calc();
     })
     .catch(() => { $("hint").textContent = "Не удалось загрузить курсы. Попробуйте позже."; });

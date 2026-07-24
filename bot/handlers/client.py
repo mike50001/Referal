@@ -107,7 +107,7 @@ async def webapp_order(message: Message, state: FSMContext, config: Config) -> N
 
     await message.answer(
         "✅ Спасибо! Ваша заявка принята.\n"
-        "Менеджер скоро свяжется с вами.",
+        "Менеджер ответит вам в течение 10 минут.",
         reply_markup=start_keyboard(),
     )
 
@@ -352,7 +352,7 @@ async def confirm_yes(call: CallbackQuery, state: FSMContext, config: Config) ->
     await call.message.edit_reply_markup(reply_markup=None)
     await call.message.answer(
         "✅ Спасибо! Ваша заявка принята.\n"
-        "Менеджер скоро свяжется с вами и назовёт актуальный курс.",
+        "Менеджер ответит вам в течение 10 минут и назовёт актуальный курс.",
         reply_markup=start_keyboard(),
     )
     await call.answer("Заявка отправлена")
