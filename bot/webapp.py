@@ -85,6 +85,7 @@ PAGE = """<!doctype html>
   .rrow:last-child { border-bottom: none; }
   .rrow .v { font-weight: 800; font-size: 16px; }
   .rrow .u { color: #9c8a5c; font-size: 10.5px; margin-left: 4px; }
+  .ratenote { text-align: center; font-size: 13px; color: #b89a5c; margin-top: 10px; min-height: 16px; }
   .submit {
     display: block; width: 100%; margin-top: 16px; padding: 15px; border: none;
     border-radius: 14px; font-size: 16px; font-weight: 800; color: #3a2a00; cursor: pointer;
@@ -104,7 +105,7 @@ PAGE = """<!doctype html>
     <div class="card">
       <label>Отдаёте</label>
       <div class="row">
-        <input id="amount" type="text" inputmode="decimal" value="1000" placeholder="Сумма">
+        <input id="amountGive" type="text" inputmode="decimal" value="1000" placeholder="Сумма">
         <select id="give"></select>
       </div>
     </div>
@@ -114,12 +115,10 @@ PAGE = """<!doctype html>
     <div class="card">
       <label>Получаете</label>
       <div class="row">
-        <select id="get" style="flex:0 0 auto; width:150px;"></select>
+        <input id="amountGet" type="text" inputmode="decimal" placeholder="Сумма">
+        <select id="get"></select>
       </div>
-      <div class="result">
-        <div class="big gold" id="out">—</div>
-        <div class="rate" id="rateline"></div>
-      </div>
+      <div class="ratenote" id="rateline"></div>
     </div>
 
     <button class="submit" id="submit">📩 Оформить заявку</button>
@@ -161,27 +160,27 @@ PAGE = """<!doctype html>
     return s;
   }
 
+  const amtGive = $("amountGive"), amtGet = $("amountGet");
+  let lastEdited = "give";
+
+  function parseAmt(v) { return parseFloat((v || "").replace(/\\s/g, "").replace(",", ".")); }
+
   function calc() {
     const give = giveSel.value, get = getSel.value;
-    const amount = parseFloat(($("amount").value || "").replace(/\\s/g, "").replace(",", "."));
-    if (give === get) {
-      $("out").textContent = (isFinite(amount) ? fmt(amount) : "—") + " " + get;
-      $("rateline").textContent = "Одинаковые валюты";
-      return;
-    }
-    const rate = PAIRS[give + "_" + get];
+    const rate = (give === get) ? 1 : PAIRS[give + "_" + get];
     if (rate === undefined) {
-      $("out").textContent = "—";
       $("rateline").textContent = "Курс для этой пары не задан";
+      if (lastEdited === "give") amtGet.value = ""; else amtGive.value = "";
       return;
     }
-    if (!isFinite(amount) || amount <= 0) {
-      $("out").textContent = "—";
-      $("rateline").textContent = "";
-      return;
+    if (lastEdited === "give") {
+      const a = parseAmt(amtGive.value);
+      amtGet.value = (isFinite(a) && a > 0) ? fmt(a * rate) : "";
+    } else {
+      const b = parseAmt(amtGet.value);
+      amtGive.value = (isFinite(b) && b > 0) ? fmt(b / rate) : "";
     }
-    $("out").textContent = fmt(amount * rate) + " " + get;
-    $("rateline").textContent = "Курс: 1 " + give + " = " + fmt(rate) + " " + get;
+    $("rateline").textContent = (give === get) ? "" : ("Курс: 1 " + give + " = " + fmt(rate) + " " + get);
   }
 
   $("swap").addEventListener("click", () => {
@@ -191,14 +190,14 @@ PAGE = """<!doctype html>
 
   $("submit").addEventListener("click", () => {
     const give = giveSel.value, get = getSel.value;
-    const amount = parseFloat(($("amount").value || "").replace(/\\s/g, "").replace(",", "."));
+    const amount = parseAmt(amtGive.value);
+    const result = parseAmt(amtGet.value);
     if (!isFinite(amount) || amount <= 0) {
       if (tg && tg.showAlert) tg.showAlert("Введите сумму больше нуля.");
+      else alert("Введите сумму больше нуля.");
       return;
     }
-    const rate = PAIRS[give + "_" + get];
-    const result = (give !== get && rate !== undefined) ? amount * rate : null;
-    const order = { type: "order", give, get, amount, result };
+    const order = { type: "order", give, get, amount, result: (isFinite(result) ? result : null) };
 
     if (!tg) {
       alert("Оформление заявки работает только внутри Telegram.");
@@ -236,11 +235,10 @@ PAGE = """<!doctype html>
       btn.disabled = false; btn.textContent = old;
     });
   });
-  ["input", "change"].forEach(ev => {
-    $("amount").addEventListener(ev, calc);
-    giveSel.addEventListener(ev, calc);
-    getSel.addEventListener(ev, calc);
-  });
+  amtGive.addEventListener("input", () => { lastEdited = "give"; calc(); });
+  amtGet.addEventListener("input", () => { lastEdited = "get"; calc(); });
+  giveSel.addEventListener("change", calc);
+  getSel.addEventListener("change", calc);
 
   function renderRates(rows) {
     $("rateslist").innerHTML = (rows || []).map(r =>
