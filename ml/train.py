@@ -61,7 +61,7 @@ def main() -> None:
     p.add_argument("--sl", type=float, default=1.5, help="стоп в ATR")
     p.add_argument("--folds", type=int, default=5)
     p.add_argument("--threshold", type=float, default=0.55, help="порог вероятности для входа")
-    p.add_argument("--fee", type=float, default=0.0004, help="комиссия на сторону (0.04%)")
+    p.add_argument("--fee", type=float, default=0.0004, help="комиссия на сторону (0.04%% по умолч.)")
     args = p.parse_args()
 
     df = load_csv(args.csv)
