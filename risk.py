@@ -21,11 +21,20 @@ class RiskManager:
 
     def _sl_tp(self, side: str, price: float, atr: float | None) -> tuple[float, float, float]:
         """Возвращает (stop_loss, take_profit, sl_distance_pct)."""
+        # --- стоп-лосс ---
         if self.cfg.use_atr_stop and atr and atr > 0:
             sl_dist = self.cfg.atr_sl_mult * atr
-            tp_dist = self.cfg.atr_tp_mult * atr
         else:
             sl_dist = self.cfg.stop_loss_pct * price
+
+        # --- тейк-профит ---
+        if self.cfg.take_profit_roi > 0:
+            # Доходность на маржу с учётом плеча: ROE ≈ dPrice% * leverage.
+            # Значит движение цены = ROI / leverage.
+            tp_dist = (self.cfg.take_profit_roi / self.cfg.leverage) * price
+        elif self.cfg.use_atr_stop and atr and atr > 0:
+            tp_dist = self.cfg.atr_tp_mult * atr
+        else:
             tp_dist = self.cfg.take_profit_pct * price
 
         if side == "LONG":

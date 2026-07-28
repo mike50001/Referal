@@ -47,6 +47,7 @@ class Config:
     risk_per_trade: float
     stop_loss_pct: float
     take_profit_pct: float
+    take_profit_roi: float   # тейк по доходности на маржу (с учётом плеча); 0 = выкл
     max_position_usdt: float
     max_drawdown_pct: float  # стоп бота при просадке от пика (0 = выкл)
 
@@ -94,6 +95,7 @@ class Config:
             risk_per_trade=_get_float("RISK_PER_TRADE", 0.01),
             stop_loss_pct=_get_float("STOP_LOSS_PCT", 0.015),
             take_profit_pct=_get_float("TAKE_PROFIT_PCT", 0.03),
+            take_profit_roi=_get_float("TAKE_PROFIT_ROI", 0.0),
             max_position_usdt=_get_float("MAX_POSITION_USDT", 100.0),
             max_drawdown_pct=_get_float("MAX_DRAWDOWN_PCT", 0.25),
             ema_fast=_get_int("EMA_FAST", 9),
@@ -133,5 +135,7 @@ class Config:
             raise ValueError("RISK_PER_TRADE должен быть в диапазоне (0, 1].")
         if not (0 <= self.max_drawdown_pct < 1):
             raise ValueError("MAX_DRAWDOWN_PCT должен быть в диапазоне [0, 1).")
+        if self.take_profit_roi < 0:
+            raise ValueError("TAKE_PROFIT_ROI не может быть отрицательным.")
         if self.leverage < 1:
             raise ValueError("LEVERAGE должен быть >= 1.")
