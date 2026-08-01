@@ -354,7 +354,18 @@ def expiry_watcher():
         time.sleep(6 * 3600)   # проверяем каждые 6 часов
 
 
+def set_bot_profile():
+    """Ставит описание «Что умеет этот бот», короткое описание и меню команд."""
+    try:
+        bot.set_my_description(texts.BOT_DESCRIPTION)
+        bot.set_my_short_description(texts.BOT_SHORT_DESCRIPTION)
+        bot.set_my_commands([types.BotCommand("start", "Открыть меню")])
+    except Exception as e:
+        logging.warning("set bot profile failed: %s", e)
+
+
 if __name__ == "__main__":
     logging.info("Bot started")
+    set_bot_profile()
     threading.Thread(target=expiry_watcher, daemon=True).start()
     bot.infinity_polling(skip_pending=True)
