@@ -34,7 +34,7 @@ def main_menu(uid: int) -> types.InlineKeyboardMarkup:
             f"🎁 Получить {config.TRIAL_DAYS} дней бесплатно", callback_data="menu:trial"))
     kb.add(types.InlineKeyboardButton("🔑 Купить / продлить доступ", callback_data="menu:buy"))
     kb.add(types.InlineKeyboardButton("📱 Моя подписка", callback_data="menu:sub"))
-    kb.add(types.InlineKeyboardButton("📲 Инструкция", callback_data="menu:help"))
+    kb.add(types.InlineKeyboardButton("📖 Инструкция", callback_data="menu:help"))
     kb.add(types.InlineKeyboardButton("🎁 Рефералка", callback_data="menu:ref"))
     if uid in config.ADMIN_IDS:
         kb.add(types.InlineKeyboardButton("🛠 Админка", callback_data="menu:admin"))
