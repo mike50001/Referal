@@ -1,6 +1,13 @@
-"""Конфиг бота. Читает переменные из окружения (.env через systemd EnvironmentFile
-или экспорт в шелле). Ничего секретного в коде не храним."""
+"""Конфиг бота. Читает переменные из .env (автоматически) или из окружения.
+Ничего секретного в коде не храним."""
 import os
+
+# Автоматически подгружаем .env рядом с этим файлом, если он есть.
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+except ImportError:
+    pass
 
 
 def _get(name: str, default: str = "") -> str:

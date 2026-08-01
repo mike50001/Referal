@@ -2,3 +2,4 @@
 # ставится на любой Python, включая 3.14, за секунды.
 pyTelegramBotAPI>=4.21
 httpx>=0.27
+python-dotenv>=1.0
