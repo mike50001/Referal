@@ -99,6 +99,28 @@ class XUI:
         link = self.build_link(inbound, client_uuid, email)
         return client_uuid, email, new_expiry, link
 
+    def _find_by_email(self, inbound: dict, email: str):
+        for c in json.loads(inbound["settings"]).get("clients", []):
+            if c.get("email") == email:
+                return c
+        return None
+
+    def set_enabled(self, user_id: int, enabled: bool):
+        inbound = self.get_inbound()
+        c = self._find_by_email(inbound, f"tg{user_id}")
+        if not c:
+            raise XUIError("клиент не найден (у пользователя нет ключа)")
+        c["enable"] = enabled
+        self._post(f"/panel/api/inbounds/updateClient/{c['id']}",
+                   {"id": inbound["id"], "settings": json.dumps({"clients": [c]})})
+
+    def delete_client(self, user_id: int):
+        inbound = self.get_inbound()
+        c = self._find_by_email(inbound, f"tg{user_id}")
+        if not c:
+            raise XUIError("клиент не найден (у пользователя нет ключа)")
+        self._post(f"/panel/api/inbounds/{inbound['id']}/delClient/{c['id']}", {})
+
     def build_link(self, inbound: dict, client_uuid: str, email: str) -> str:
         ss = json.loads(inbound["streamSettings"])
         rs = ss.get("realitySettings", {})

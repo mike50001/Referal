@@ -342,9 +342,83 @@ def cb_admin(call):
          f"🛠 <b>Статистика</b>\n\n"
          f"👥 Пользователей: <b>{users}</b>\n"
          f"✅ Активных подписок: <b>{active}</b>\n"
-         f"💰 Выручка (подтверждённая): <b>{revenue:.0f} {config.CURRENCY}</b>",
+         f"💰 Выручка (подтверждённая): <b>{revenue:.0f} {config.CURRENCY}</b>\n\n"
+         f"👤 Управление пользователем: отправь команду\n<code>/user ID</code>\n"
+         f"(ID берётся из заявки на оплату или из уведомления о реферале)",
          back_kb())
     bot.answer_callback_query(call.id)
+
+
+# ---------------- админ: управление пользователем ----------------
+def _user_card(target: int):
+    u = db.get_user(target)
+    sub = db.get_sub(target)
+    if not u:
+        return None, None
+    exp = fmt_expiry(sub["expiry_ms"]) if sub else "—"
+    active = sub and sub["expiry_ms"] and sub["expiry_ms"] > now_ms()
+    uname = f"@{u['username']}" if u["username"] else (u["first_name"] or "—")
+    text = (f"👤 <b>Пользователь</b> <code>{target}</code>\n"
+            f"Имя: {uname}\n"
+            f"Подписка до: <b>{exp}</b> {'🟢' if active else '🔴'}\n"
+            f"Приглашено друзей: {db.referral_count(target)}")
+    kb = types.InlineKeyboardMarkup()
+    kb.row(types.InlineKeyboardButton("⛔ Отключить", callback_data=f"adm:off:{target}"),
+           types.InlineKeyboardButton("✅ Включить", callback_data=f"adm:on:{target}"))
+    kb.add(types.InlineKeyboardButton("➕ Продлить на 30 дней", callback_data=f"adm:ext:{target}"))
+    kb.add(types.InlineKeyboardButton("🗑 Удалить ключ", callback_data=f"adm:del:{target}"))
+    return text, kb
+
+
+@bot.message_handler(commands=["user"])
+def cmd_user(message):
+    if message.from_user.id not in config.ADMIN_IDS:
+        return
+    parts = message.text.split()
+    if len(parts) < 2 or not parts[1].lstrip("-").isdigit():
+        bot.send_message(message.chat.id, "Использование: <code>/user ID</code>")
+        return
+    text, kb = _user_card(int(parts[1]))
+    if not text:
+        bot.send_message(message.chat.id, "Пользователь не найден в базе бота.")
+        return
+    bot.send_message(message.chat.id, text, reply_markup=kb)
+
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith("adm:"))
+def cb_admin_action(call):
+    if call.from_user.id not in config.ADMIN_IDS:
+        bot.answer_callback_query(call.id, "Нет прав", show_alert=True)
+        return
+    _, action, target = call.data.split(":")
+    target = int(target)
+    try:
+        if action == "off":
+            xui.set_enabled(target, False)
+            result = "Ключ отключён ⛔"
+        elif action == "on":
+            xui.set_enabled(target, True)
+            result = "Ключ включён ✅"
+        elif action == "ext":
+            expiry, _ = grant_days(target, 30)
+            result = f"Продлён на 30 дней (до {fmt_expiry(expiry)})"
+        elif action == "del":
+            xui.delete_client(target)
+            db.set_sub(target, None, None, 0)
+            result = "Ключ удалён 🗑"
+        else:
+            result = "?"
+        bot.answer_callback_query(call.id, result, show_alert=True)
+        text, kb = _user_card(target)
+        if text:
+            try:
+                bot.edit_message_text(text + f"\n\n<i>{result}</i>",
+                                      call.message.chat.id, call.message.message_id,
+                                      reply_markup=kb)
+            except Exception:
+                pass
+    except XUIError as e:
+        bot.answer_callback_query(call.id, f"Ошибка панели: {e}", show_alert=True)
 
 
 # ---------------- уведомления об окончании подписки ----------------
