@@ -73,10 +73,16 @@ def cmd_start(message):
     parts = message.text.split(maxsplit=1)
     if len(parts) > 1 and parts[1].strip().isdigit():
         ref = int(parts[1].strip())
-    db.ensure_user(message.from_user.id, message.from_user.username or "",
-                   message.from_user.first_name or "", referrer_id=ref)
-    bot.send_message(message.chat.id, texts.WELCOME,
-                     reply_markup=main_menu(message.from_user.id))
+    uid = message.from_user.id
+    is_new = db.ensure_user(uid, message.from_user.username or "",
+                            message.from_user.first_name or "", referrer_id=ref)
+    note = ""
+    if is_new:
+        u = db.get_user(uid)
+        if u["referrer_id"]:
+            _grant_referral(uid, u["referrer_id"])
+            note = texts.TRIAL_NOTE.format(days=config.REFERRAL_DAYS)
+    bot.send_message(message.chat.id, texts.WELCOME + note, reply_markup=main_menu(uid))
 
 
 @bot.message_handler(commands=["id"])
@@ -119,12 +125,10 @@ def cb_sub(call):
 
 @bot.callback_query_handler(func=lambda c: c.data == "menu:ref")
 def cb_ref(call):
-    u = db.get_user(call.from_user.id)
+    count = db.referral_count(call.from_user.id)
     link = f"https://t.me/{bot.get_me().username}?start={call.from_user.id}"
-    text = texts.REF_INFO.format(
-        percent=config.REFERRAL_PERCENT, link=link,
-        count=db.referral_count(call.from_user.id),
-        earned=u["ref_earned"], balance=u["balance"], cur=config.CURRENCY)
+    text = texts.REF_INFO.format(days=config.REFERRAL_DAYS, link=link,
+                                 count=count, earned_days=count * config.REFERRAL_DAYS)
     edit(call, text, back_kb())
     bot.answer_callback_query(call.id)
 
@@ -156,25 +160,33 @@ def cb_pick_tariff(call):
     bot.answer_callback_query(call.id)
 
 
-def provision(uid: int, key: str, amount: float, credit_ref: bool):
-    """Выдаёт/продлевает ключ, обновляет БД, начисляет реферальный %."""
-    name, days, price = tariffs.get(key)
+def grant_days(uid: int, days: int):
+    """Создаёт/продлевает ключ на N дней, обновляет БД. Возвращает (expiry_ms, link)."""
     client_uuid, email, expiry_ms, link = xui.add_or_extend(uid, days)
     db.set_sub(uid, client_uuid, email, expiry_ms)
+    return expiry_ms, link
 
-    if credit_ref:
-        u = db.get_user(uid)
-        if u and u["referrer_id"]:
-            bonus = round(amount * config.REFERRAL_PERCENT / 100, 2)
-            if bonus > 0:
-                db.add_balance(u["referrer_id"], bonus, as_earning=True)
-                try:
-                    bot.send_message(u["referrer_id"],
-                                     f"🎁 Твой реферал оплатил подписку — тебе начислено "
-                                     f"<b>{bonus:.0f} {config.CURRENCY}</b> на баланс!")
-                except Exception:
-                    pass
 
+def _grant_referral(new_uid: int, referrer_id: int):
+    """Пробные дни новому пользователю и бонусные дни пригласившему."""
+    days = config.REFERRAL_DAYS
+    try:
+        grant_days(new_uid, days)
+    except XUIError as e:
+        logging.warning("trial provision failed: %s", e)
+    try:
+        expiry, _ = grant_days(referrer_id, days)
+        bot.send_message(referrer_id,
+                         f"🎁 По твоей ссылке присоединился друг — тебе <b>+{days} дней</b>! "
+                         f"Доступ активен до <b>{fmt_expiry(expiry)}</b>.")
+    except Exception as e:
+        logging.warning("referrer bonus failed: %s", e)
+
+
+def provision(uid: int, key: str):
+    """Выдаёт/продлевает ключ по купленному тарифу и шлёт пользователю ссылку."""
+    name, days, price = tariffs.get(key)
+    expiry_ms, link = grant_days(uid, days)
     bot.send_message(
         uid,
         f"✅ Доступ активен до <b>{fmt_expiry(expiry_ms)}</b>!\n\n"
@@ -197,7 +209,7 @@ def cb_pay_balance(call):
         return
     bot.answer_callback_query(call.id, "Оплачено с баланса ✅")
     try:
-        provision(call.from_user.id, key, price, credit_ref=False)
+        provision(call.from_user.id, key)
         bot.delete_message(call.message.chat.id, call.message.message_id)
     except XUIError as e:
         db.add_balance(call.from_user.id, price)  # вернуть деньги при сбое
@@ -277,7 +289,7 @@ def cb_decide(call):
         return
 
     try:
-        provision(pay["user_id"], pay["tariff_key"], pay["amount"], credit_ref=True)
+        provision(pay["user_id"], pay["tariff_key"])
         db.set_payment_status(pid, "confirmed")
         edit(call, f"Заявка #{pid}: ✅ подтверждена, ключ выдан")
         bot.answer_callback_query(call.id, "Подтверждено ✅")

@@ -25,8 +25,9 @@ XUI_INBOUND_ID = int(_get("XUI_INBOUND_ID", "1"))
 SERVER_IP = _get("SERVER_IP")
 CLIENT_FLOW = _get("CLIENT_FLOW", "xtls-rprx-vision")
 
-# --- рефералка ---
-REFERRAL_PERCENT = float(_get("REFERRAL_PERCENT", "20"))
+# --- рефералка (в днях) ---
+# Сколько дней получает новый юзер по ссылке И сколько получает пригласивший
+REFERRAL_DAYS = int(_get("REFERRAL_DAYS", "7"))
 
 # --- оплата ---
 CURRENCY = _get("CURRENCY", "руб.")
