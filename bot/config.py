@@ -31,7 +31,11 @@ REFERRAL_DAYS = int(_get("REFERRAL_DAYS", "7"))
 
 # --- оплата ---
 CURRENCY = _get("CURRENCY", "руб.")
-PAYMENT_DETAILS = _get("PAYMENT_DETAILS", "Реквизиты не заданы").replace("\\n", "\n")
+# Контакт администратора для оплаты: @username или ссылка https://t.me/...
+ADMIN_CONTACT = _get("ADMIN_CONTACT", "")
+
+# --- уведомление об окончании подписки ---
+EXPIRY_WARN_DAYS = int(_get("EXPIRY_WARN_DAYS", "2"))
 
 DB_PATH = _get("DB_PATH", os.path.join(os.path.dirname(__file__), "bot.db"))
 

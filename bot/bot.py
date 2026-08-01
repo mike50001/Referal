@@ -5,6 +5,8 @@
 Запуск: заполни .env (см. .env.example), затем `python bot.py`.
 """
 import logging
+import threading
+import time
 from datetime import datetime, timezone
 
 import telebot
@@ -59,6 +61,16 @@ def fmt_expiry(expiry_ms: int) -> str:
 
 def now_ms() -> int:
     return int(datetime.now(tz=timezone.utc).timestamp() * 1000)
+
+
+def admin_link():
+    """Ссылка на страницу администратора в Telegram (из ADMIN_CONTACT)."""
+    c = config.ADMIN_CONTACT.strip()
+    if not c:
+        return None
+    if c.startswith("http"):
+        return c
+    return "https://t.me/" + c.lstrip("@")
 
 
 def edit(call, text, kb=None):
@@ -224,9 +236,11 @@ def cb_pay_manual(call):
         bot.answer_callback_query(call.id, "Тариф не найден", show_alert=True)
         return
     name, days, price = t
-    text = texts.PAY_INSTRUCTIONS.format(
-        name=name, price=price, cur=config.CURRENCY, details=config.PAYMENT_DETAILS)
+    text = texts.PAY_INSTRUCTIONS.format(name=name, price=price, cur=config.CURRENCY)
     kb = types.InlineKeyboardMarkup()
+    link = admin_link()
+    if link:
+        kb.add(types.InlineKeyboardButton("✍️ Написать администратору", url=link))
     kb.add(types.InlineKeyboardButton("✅ Я оплатил", callback_data=f"paid:{key}"))
     kb.add(types.InlineKeyboardButton("⬅️ Назад", callback_data="menu:buy"))
     edit(call, text, kb)
@@ -313,6 +327,32 @@ def cb_admin(call):
     bot.answer_callback_query(call.id)
 
 
+# ---------------- уведомления об окончании подписки ----------------
+def check_expiry():
+    now = now_ms()
+    until = now + config.EXPIRY_WARN_DAYS * 86400 * 1000
+    for row in db.subs_expiring(now, until):
+        try:
+            kb = types.InlineKeyboardMarkup()
+            kb.add(types.InlineKeyboardButton("🔑 Продлить доступ", callback_data="menu:buy"))
+            bot.send_message(row["user_id"],
+                             texts.EXPIRY_WARN.format(date=fmt_expiry(row["expiry_ms"])),
+                             reply_markup=kb)
+            db.mark_warned(row["user_id"])
+        except Exception as e:
+            logging.warning("expiry notify %s: %s", row["user_id"], e)
+
+
+def expiry_watcher():
+    while True:
+        try:
+            check_expiry()
+        except Exception as e:
+            logging.warning("expiry watcher: %s", e)
+        time.sleep(6 * 3600)   # проверяем каждые 6 часов
+
+
 if __name__ == "__main__":
     logging.info("Bot started")
+    threading.Thread(target=expiry_watcher, daemon=True).start()
     bot.infinity_polling(skip_pending=True)

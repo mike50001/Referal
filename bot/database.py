@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS subs (
     user_id     INTEGER PRIMARY KEY,
     client_uuid TEXT,
     email       TEXT,
-    expiry_ms   INTEGER DEFAULT 0
+    expiry_ms   INTEGER DEFAULT 0,
+    warned      INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS payments (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,6 +48,10 @@ def _conn():
 def init() -> None:
     with _conn() as con:
         con.executescript(_SCHEMA)
+        # миграция: добавить колонку warned, если БД создана старой версией
+        cols = [r["name"] for r in con.execute("PRAGMA table_info(subs)")]
+        if "warned" not in cols:
+            con.execute("ALTER TABLE subs ADD COLUMN warned INTEGER DEFAULT 0")
 
 
 # ---------- users ----------
@@ -105,11 +110,26 @@ def get_sub(uid: int):
 
 def set_sub(uid: int, client_uuid: str, email: str, expiry_ms: int):
     with _conn() as con:
+        # warned=0 — при продлении снова разрешаем предупреждение об окончании
         con.execute(
-            "INSERT INTO subs(user_id, client_uuid, email, expiry_ms) VALUES(?,?,?,?) "
+            "INSERT INTO subs(user_id, client_uuid, email, expiry_ms, warned) VALUES(?,?,?,?,0) "
             "ON CONFLICT(user_id) DO UPDATE SET client_uuid=excluded.client_uuid, "
-            "email=excluded.email, expiry_ms=excluded.expiry_ms",
+            "email=excluded.email, expiry_ms=excluded.expiry_ms, warned=0",
             (uid, client_uuid, email, expiry_ms))
+
+
+def subs_expiring(now_ms: int, until_ms: int):
+    """Активные подписки, которые заканчиваются в промежутке (сейчас; until],
+    и по которым ещё не слали предупреждение."""
+    with _conn() as con:
+        return con.execute(
+            "SELECT * FROM subs WHERE expiry_ms>? AND expiry_ms<=? AND warned=0",
+            (now_ms, until_ms)).fetchall()
+
+
+def mark_warned(uid: int):
+    with _conn() as con:
+        con.execute("UPDATE subs SET warned=1 WHERE user_id=?", (uid,))
 
 
 # ---------- payments ----------
