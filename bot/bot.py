@@ -29,6 +29,9 @@ xui = XUI()
 # ---------------- клавиатуры ----------------
 def main_menu(uid: int) -> types.InlineKeyboardMarkup:
     kb = types.InlineKeyboardMarkup()
+    if not db.is_trial_claimed(uid):
+        kb.add(types.InlineKeyboardButton(
+            f"🎁 Получить {config.TRIAL_DAYS} дней бесплатно", callback_data="menu:trial"))
     kb.add(types.InlineKeyboardButton("🔑 Купить / продлить доступ", callback_data="menu:buy"))
     kb.add(types.InlineKeyboardButton("📱 Моя подписка", callback_data="menu:sub"))
     kb.add(types.InlineKeyboardButton("📲 Инструкция", callback_data="menu:help"))
@@ -88,19 +91,12 @@ def cmd_start(message):
     uid = message.from_user.id
     is_new = db.ensure_user(uid, message.from_user.username or "",
                             message.from_user.first_name or "", referrer_id=ref)
-    note = ""
     if is_new:
         u = db.get_user(uid)
-        # 7 дней бесплатно КАЖДОМУ новому пользователю
-        try:
-            grant_days(uid, config.TRIAL_DAYS)
-            note = texts.TRIAL_NOTE.format(days=config.TRIAL_DAYS)
-        except XUIError as e:
-            logging.warning("trial provision failed: %s", e)
         # если пришёл по реферальной ссылке — бонус пригласившему
         if u["referrer_id"]:
             _grant_referrer_bonus(u["referrer_id"])
-    bot.send_message(message.chat.id, texts.WELCOME + note, reply_markup=main_menu(uid))
+    bot.send_message(message.chat.id, texts.WELCOME, reply_markup=main_menu(uid))
 
 
 @bot.message_handler(commands=["id"])
@@ -119,6 +115,28 @@ def cb_back(call):
 def cb_help(call):
     edit(call, texts.HELP_CONNECT, back_kb())
     bot.answer_callback_query(call.id)
+
+
+@bot.callback_query_handler(func=lambda c: c.data == "menu:trial")
+def cb_trial(call):
+    uid = call.from_user.id
+    if db.is_trial_claimed(uid):
+        bot.answer_callback_query(call.id, "Ты уже получал бесплатный период 🙂", show_alert=True)
+        return
+    try:
+        expiry, link = grant_days(uid, config.TRIAL_DAYS)
+    except XUIError as e:
+        bot.answer_callback_query(call.id, f"Ошибка выдачи: {e}", show_alert=True)
+        return
+    db.set_trial_claimed(uid)
+    bot.answer_callback_query(call.id, f"🎁 {config.TRIAL_DAYS} дней активированы!")
+    edit(call,
+         f"🎁 <b>Готово! Тебе начислено {config.TRIAL_DAYS} дней бесплатно.</b>\n\n"
+         f"Доступ активен до <b>{fmt_expiry(expiry)}</b>.\n\n"
+         f"🔗 Твоя ссылка для v2rayTun:\n<code>{link}</code>\n\n"
+         f"Открой v2rayTun → «+» → «Импорт из буфера обмена». "
+         f"Подробнее — кнопка «Инструкция».",
+         back_kb())
 
 
 @bot.callback_query_handler(func=lambda c: c.data == "menu:sub")

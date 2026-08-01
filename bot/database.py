@@ -7,13 +7,14 @@ import config
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS users (
-    user_id     INTEGER PRIMARY KEY,
-    username    TEXT,
-    first_name  TEXT,
-    balance     REAL    DEFAULT 0,
-    ref_earned  REAL    DEFAULT 0,
-    referrer_id INTEGER,
-    created_at  INTEGER
+    user_id       INTEGER PRIMARY KEY,
+    username      TEXT,
+    first_name    TEXT,
+    balance       REAL    DEFAULT 0,
+    ref_earned    REAL    DEFAULT 0,
+    referrer_id   INTEGER,
+    trial_claimed INTEGER DEFAULT 0,
+    created_at    INTEGER
 );
 CREATE TABLE IF NOT EXISTS subs (
     user_id     INTEGER PRIMARY KEY,
@@ -48,10 +49,13 @@ def _conn():
 def init() -> None:
     with _conn() as con:
         con.executescript(_SCHEMA)
-        # миграция: добавить колонку warned, если БД создана старой версией
-        cols = [r["name"] for r in con.execute("PRAGMA table_info(subs)")]
-        if "warned" not in cols:
+        # миграции для БД, созданных старой версией
+        sub_cols = [r["name"] for r in con.execute("PRAGMA table_info(subs)")]
+        if "warned" not in sub_cols:
             con.execute("ALTER TABLE subs ADD COLUMN warned INTEGER DEFAULT 0")
+        user_cols = [r["name"] for r in con.execute("PRAGMA table_info(users)")]
+        if "trial_claimed" not in user_cols:
+            con.execute("ALTER TABLE users ADD COLUMN trial_claimed INTEGER DEFAULT 0")
 
 
 # ---------- users ----------
@@ -94,6 +98,17 @@ def spend_balance(uid: int, amount: float) -> bool:
             return False
         con.execute("UPDATE users SET balance=balance-? WHERE user_id=?", (amount, uid))
         return True
+
+
+def is_trial_claimed(uid: int) -> bool:
+    with _conn() as con:
+        row = con.execute("SELECT trial_claimed FROM users WHERE user_id=?", (uid,)).fetchone()
+        return bool(row and row["trial_claimed"])
+
+
+def set_trial_claimed(uid: int):
+    with _conn() as con:
+        con.execute("UPDATE users SET trial_claimed=1 WHERE user_id=?", (uid,))
 
 
 def referral_count(uid: int) -> int:
