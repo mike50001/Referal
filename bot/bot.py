@@ -4,7 +4,9 @@
 На pyTelegramBotAPI (чистый Python, без компилируемых зависимостей).
 Запуск: заполни .env (см. .env.example), затем `python bot.py`.
 """
+import glob
 import logging
+import os
 import threading
 import time
 from datetime import datetime, timezone
@@ -111,10 +113,43 @@ def cb_back(call):
     bot.answer_callback_query(call.id)
 
 
+INSTR_DIR = os.path.join(os.path.dirname(__file__), "instruction")
+
+
+def _instruction_images():
+    if not os.path.isdir(INSTR_DIR):
+        return []
+    files = sorted(glob.glob(os.path.join(INSTR_DIR, "*")))
+    return [f for f in files if f.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))]
+
+
 @bot.callback_query_handler(func=lambda c: c.data == "menu:help")
 def cb_help(call):
-    edit(call, texts.HELP_CONNECT, back_kb())
     bot.answer_callback_query(call.id)
+    imgs = _instruction_images()
+    if not imgs:
+        edit(call, texts.HELP_CONNECT, back_kb())
+        return
+    cap = texts.HELP_CONNECT if len(texts.HELP_CONNECT) <= 1024 else None
+    try:
+        if len(imgs) == 1:
+            with open(imgs[0], "rb") as f:
+                bot.send_photo(call.message.chat.id, f, caption=cap, parse_mode="HTML")
+        else:
+            media = []
+            files = [open(p, "rb") for p in imgs]
+            for i, f in enumerate(files):
+                media.append(types.InputMediaPhoto(
+                    f, caption=cap if i == 0 else None, parse_mode="HTML"))
+            bot.send_media_group(call.message.chat.id, media)
+            for f in files:
+                f.close()
+        if cap is None:
+            bot.send_message(call.message.chat.id, texts.HELP_CONNECT)
+    except Exception as e:
+        logging.warning("send instruction images failed: %s", e)
+        bot.send_message(call.message.chat.id, texts.HELP_CONNECT)
+    bot.send_message(call.message.chat.id, "⬅️ Вернуться в меню:", reply_markup=back_kb())
 
 
 @bot.callback_query_handler(func=lambda c: c.data == "menu:trial")
