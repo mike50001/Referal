@@ -91,9 +91,15 @@ def cmd_start(message):
     note = ""
     if is_new:
         u = db.get_user(uid)
+        # 7 дней бесплатно КАЖДОМУ новому пользователю
+        try:
+            grant_days(uid, config.TRIAL_DAYS)
+            note = texts.TRIAL_NOTE.format(days=config.TRIAL_DAYS)
+        except XUIError as e:
+            logging.warning("trial provision failed: %s", e)
+        # если пришёл по реферальной ссылке — бонус пригласившему
         if u["referrer_id"]:
-            _grant_referral(uid, u["referrer_id"])
-            note = texts.TRIAL_NOTE.format(days=config.REFERRAL_DAYS)
+            _grant_referrer_bonus(u["referrer_id"])
     bot.send_message(message.chat.id, texts.WELCOME + note, reply_markup=main_menu(uid))
 
 
@@ -179,13 +185,9 @@ def grant_days(uid: int, days: int):
     return expiry_ms, link
 
 
-def _grant_referral(new_uid: int, referrer_id: int):
-    """Пробные дни новому пользователю и бонусные дни пригласившему."""
+def _grant_referrer_bonus(referrer_id: int):
+    """Бонусные дни пригласившему за нового реферала."""
     days = config.REFERRAL_DAYS
-    try:
-        grant_days(new_uid, days)
-    except XUIError as e:
-        logging.warning("trial provision failed: %s", e)
     try:
         expiry, _ = grant_days(referrer_id, days)
         bot.send_message(referrer_id,
