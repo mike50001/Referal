@@ -25,8 +25,8 @@ QUOTE_KEYS = ("kzt_give_kzt", "kzt_give_rub", "thb_give_thb", "thb_give_rub")
 _quotes: dict[str, float] = {
     "kzt_give_kzt": 6.0,
     "kzt_give_rub": 5.6,
-    "thb_give_thb": 2.55,
-    "thb_give_rub": 2.33,
+    "thb_give_thb": 2.33,
+    "thb_give_rub": 2.55,
 }
 
 # Как показывать курсы клиенту/админу: (заголовок, ключ курса, единица).
