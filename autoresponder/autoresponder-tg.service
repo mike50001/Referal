@@ -1,0 +1,17 @@
+# systemd-юнит для Telegram авто-ответчика.
+# Копируется в /etc/systemd/system/autoresponder-tg.service (см. docs/autoresponder.md)
+
+[Unit]
+Description=Telegram FAQ Autoresponder
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/referal/autoresponder
+ExecStart=/root/referal/.venv/bin/python telegram_bot.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
