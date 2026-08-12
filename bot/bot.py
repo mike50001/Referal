@@ -18,14 +18,14 @@ import config
 import database as db
 import tariffs
 import texts
-from xui import XUI, XUIError
+from remna import Remna, RemnaError
 
 logging.basicConfig(level=logging.INFO)
 
 config.validate()
 db.init()
 bot = telebot.TeleBot(config.BOT_TOKEN, parse_mode="HTML")
-xui = XUI()
+remna = Remna()
 
 
 # ---------------- клавиатуры ----------------
@@ -160,7 +160,7 @@ def cb_trial(call):
         return
     try:
         expiry, link = grant_days(uid, config.TRIAL_DAYS)
-    except XUIError as e:
+    except RemnaError as e:
         bot.answer_callback_query(call.id, f"Ошибка выдачи: {e}", show_alert=True)
         return
     db.set_trial_claimed(uid)
@@ -168,8 +168,8 @@ def cb_trial(call):
     edit(call,
          f"🎁 <b>Готово! Тебе начислено {config.TRIAL_DAYS} дней бесплатно.</b>\n\n"
          f"Доступ активен до <b>{fmt_expiry(expiry)}</b>.\n\n"
-         f"🔗 Твоя ссылка для v2rayTun:\n<code>{link}</code>\n\n"
-         f"Открой v2rayTun → «+» → «Импорт из буфера обмена». "
+         f"🔗 Твоя ссылка-подписка (в ней сразу все страны):\n<code>{link}</code>\n\n"
+         f"Открой приложение (Happ / v2rayTun) → «+» → «Добавить подписку» и вставь ссылку. "
          f"Подробнее — кнопка «Инструкция».",
          back_kb())
 
@@ -182,13 +182,14 @@ def cb_sub(call):
         bot.answer_callback_query(call.id)
         return
     try:
-        inbound = xui.get_inbound()
-        link = xui.build_link(inbound, sub["client_uuid"], sub["email"])
-    except XUIError:
+        link = remna.get_link(call.from_user.id)
+    except RemnaError:
+        link = ""
+    if not link:
         link = "(не удалось получить ссылку, напиши в поддержку)"
     text = (f"📱 <b>Твоя подписка</b>\n\n"
             f"Активна до: <b>{fmt_expiry(sub['expiry_ms'])}</b>\n\n"
-            f"🔗 Ссылка для v2rayTun:\n<code>{link}</code>\n\n"
+            f"🔗 Ссылка-подписка (все страны):\n<code>{link}</code>\n\n"
             f"Как подключиться — кнопка «Инструкция» в меню.")
     edit(call, text, back_kb())
     bot.answer_callback_query(call.id)
@@ -233,7 +234,7 @@ def cb_pick_tariff(call):
 
 def grant_days(uid: int, days: int):
     """Создаёт/продлевает ключ на N дней, обновляет БД. Возвращает (expiry_ms, link)."""
-    client_uuid, email, expiry_ms, link = xui.add_or_extend(uid, days)
+    client_uuid, email, expiry_ms, link = remna.add_or_extend(uid, days)
     db.set_sub(uid, client_uuid, email, expiry_ms)
     return expiry_ms, link
 
@@ -257,8 +258,8 @@ def provision(uid: int, key: str):
     bot.send_message(
         uid,
         f"✅ Доступ активен до <b>{fmt_expiry(expiry_ms)}</b>!\n\n"
-        f"🔗 Твоя ссылка:\n<code>{link}</code>\n\n"
-        f"Открой v2rayTun → «+» → «Импорт из буфера обмена». "
+        f"🔗 Твоя ссылка-подписка (в ней сразу все страны):\n<code>{link}</code>\n\n"
+        f"Открой приложение (Happ / v2rayTun) → «+» → «Добавить подписку» и вставь ссылку. "
         f"Подробнее — «Инструкция» в меню.",
         reply_markup=main_menu(uid), disable_web_page_preview=True)
 
@@ -278,7 +279,7 @@ def cb_pay_balance(call):
     try:
         provision(call.from_user.id, key)
         bot.delete_message(call.message.chat.id, call.message.message_id)
-    except XUIError as e:
+    except RemnaError as e:
         db.add_balance(call.from_user.id, price)  # вернуть деньги при сбое
         edit(call, f"⚠️ Ошибка выдачи ключа: {e}\nСредства возвращены на баланс.", back_kb())
 
@@ -362,7 +363,7 @@ def cb_decide(call):
         db.set_payment_status(pid, "confirmed")
         edit(call, f"Заявка #{pid}: ✅ подтверждена, ключ выдан")
         bot.answer_callback_query(call.id, "Подтверждено ✅")
-    except XUIError as e:
+    except RemnaError as e:
         bot.answer_callback_query(call.id, f"Ошибка панели: {e}", show_alert=True)
 
 
@@ -429,16 +430,16 @@ def cb_admin_action(call):
     target = int(target)
     try:
         if action == "off":
-            xui.set_enabled(target, False)
+            remna.set_enabled(target, False)
             result = "Ключ отключён ⛔"
         elif action == "on":
-            xui.set_enabled(target, True)
+            remna.set_enabled(target, True)
             result = "Ключ включён ✅"
         elif action == "ext":
             expiry, _ = grant_days(target, 30)
             result = f"Продлён на 30 дней (до {fmt_expiry(expiry)})"
         elif action == "del":
-            xui.delete_client(target)
+            remna.delete_client(target)
             db.set_sub(target, None, None, 0)
             result = "Ключ удалён 🗑"
         else:
@@ -452,7 +453,7 @@ def cb_admin_action(call):
                                       reply_markup=kb)
             except Exception:
                 pass
-    except XUIError as e:
+    except RemnaError as e:
         bot.answer_callback_query(call.id, f"Ошибка панели: {e}", show_alert=True)
 
 

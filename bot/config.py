@@ -17,7 +17,15 @@ def _get(name: str, default: str = "") -> str:
 BOT_TOKEN = _get("BOT_TOKEN")
 ADMIN_IDS = [int(x) for x in _get("ADMIN_IDS").replace(" ", "").split(",") if x]
 
-# --- 3x-ui ---
+# --- Remnawave (актуальный движок выдачи ключей) ---
+# Базовый адрес панели, напр. https://panel.cashxyz.store (без /api на конце)
+REMNA_BASE_URL = _get("REMNA_BASE_URL").rstrip("/")
+# API-токен из панели: Настройки → API токены (Bearer)
+REMNA_TOKEN = _get("REMNA_TOKEN")
+# UUID внутреннего сквада, в который добавляем пользователей (все ноды/локации)
+REMNA_SQUAD_UUID = _get("REMNA_SQUAD_UUID")
+
+# --- 3x-ui (устаревший движок; оставлен для совместимости, не обязателен) ---
 XUI_BASE_URL = _get("XUI_BASE_URL").rstrip("/")
 XUI_USERNAME = _get("XUI_USERNAME")
 XUI_PASSWORD = _get("XUI_PASSWORD")
@@ -45,8 +53,8 @@ DB_PATH = _get("DB_PATH", os.path.join(os.path.dirname(__file__), "bot.db"))
 
 
 def validate() -> None:
-    missing = [n for n in ("BOT_TOKEN", "XUI_BASE_URL", "XUI_USERNAME",
-                           "XUI_PASSWORD", "SERVER_IP") if not globals()[n]]
+    missing = [n for n in ("BOT_TOKEN", "REMNA_BASE_URL", "REMNA_TOKEN",
+                           "REMNA_SQUAD_UUID") if not globals()[n]]
     if missing:
         raise SystemExit(f"Не заданы переменные окружения: {', '.join(missing)}. "
                          f"Скопируй .env.example в .env и заполни.")
