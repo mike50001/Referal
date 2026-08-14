@@ -182,7 +182,7 @@ def cb_sub(call):
         bot.answer_callback_query(call.id)
         return
     try:
-        link = remna.get_link(call.from_user.id)
+        _cu, _em, _ex, link = remna.ensure_link(call.from_user.id, sub["expiry_ms"])
     except RemnaError:
         link = ""
     if not link:

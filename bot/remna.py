@@ -119,6 +119,30 @@ class Remna:
         user = self.get_user(user_id)
         return user.get("subscriptionUrl", "") if user else ""
 
+    def ensure_link(self, user_id: int, expiry_ms: int = 0):
+        """Возвращает (id, username, expiry_ms, link). Если пользователя нет в
+        Remnawave — создаёт его с указанным абсолютным сроком (миграция старых
+        пользователей из bot.db). Если срок в прошлом/не задан — даёт 1 день."""
+        username = f"tg{user_id}"
+        user = self.get_user(user_id)
+        if user:
+            return (user["id"], username,
+                    _to_ms(user.get("expireAt")), user.get("subscriptionUrl", ""))
+        now_ms = int(time.time() * 1000)
+        exp = expiry_ms if expiry_ms and expiry_ms > now_ms else now_ms + 86400 * 1000
+        payload = {
+            "username": username,
+            "status": "ACTIVE",
+            "expireAt": _to_iso(exp),
+            "trafficLimitBytes": 0,
+            "trafficLimitStrategy": "NO_RESET",
+            "activeInternalSquads": [self.squad],
+            "telegramId": int(user_id),
+        }
+        resp = self._req("POST", "/users", json=payload)
+        return (resp.get("id"), username,
+                _to_ms(resp.get("expireAt")) or exp, resp.get("subscriptionUrl", ""))
+
     def set_enabled(self, user_id: int, enabled: bool):
         user = self.get_user(user_id)
         if not user:
