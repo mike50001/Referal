@@ -6,6 +6,20 @@ Telegram-бот: личный гид по переезду и жизни на П
 
 Это Python-версия бота (`@StuGoTravelMoveBot`), готовая к деплою на Railway.
 
+## ⚡️ Быстрый тест за 3 минуты (Railway)
+
+1. Зайди на [railway.app](https://railway.app) → **New Project** →
+   **Deploy from GitHub repo** → выбери `mike50001/Referal` и ветку
+   `claude/telegram-traveler-bot-f66frb`.
+2. Открой вкладку **Variables** → **New Variable**:
+   - `BOT_TOKEN` = токен из [@BotFather](https://t.me/BotFather)
+     (`/mybots → @StuGoTravelMoveBot → API Token`).
+3. Railway сам соберёт проект и запустит `python run.py`.
+4. Открой бота в Telegram, напиши `/start` — он ответит.
+
+> После каждого пуша в эту ветку Railway пересобирает бота автоматически —
+> удобно тестировать правки разделов на лету.
+
 ## 🧩 Как устроен бот
 
 - `/start` — приветствие + постоянная клавиатура с разделами.
