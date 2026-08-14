@@ -274,6 +274,9 @@ CARS: list[dict[str, str]] = [
             "6 месяцев — 15 000 бат/месяц\n"
             "12 месяцев — 14 000 бат/месяц"
         ),
+        "photos": [
+            "AgACAgIAAxkBAANVan7cp511Y0ZefNKZT_32GsWPpikAAqAaaxsYQvBLrujPseCsMocBAAMCAAN5AAM9BA",
+        ],
     },
     {
         "id": "nissan_almera",
