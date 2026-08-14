@@ -198,16 +198,31 @@ SECTIONS: dict[str, tuple[str, str]] = {
     ),
 }
 
+# Inline-кнопки-ссылки под текстом раздела.
+# Ключ раздела -> список (подпись кнопки, URL).
+# Чтобы добавить кнопку в любой раздел — просто впиши сюда его ключ.
+SECTION_BUTTONS: dict[str, list[tuple[str, str]]] = {
+    "currency": [
+        ("💬 Написать обменнику", "https://t.me/MISHACASHBot"),
+    ],
+}
+
 
 def button_labels() -> list[str]:
     """Все подписи кнопок в порядке разделов."""
     return [label for label, _ in SECTIONS.values()]
 
 
+def find_key_by_label(text: str) -> str | None:
+    """Найти ключ раздела по подписи нажатой кнопки."""
+    text = text.strip()
+    for key, (label, _body) in SECTIONS.items():
+        if label == text:
+            return key
+    return None
+
+
 def find_section_by_label(text: str) -> str | None:
     """Найти текст ответа по подписи нажатой кнопки."""
-    text = text.strip()
-    for label, body in SECTIONS.values():
-        if label == text:
-            return body
-    return None
+    key = find_key_by_label(text)
+    return SECTIONS[key][1] if key else None

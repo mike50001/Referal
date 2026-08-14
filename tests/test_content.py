@@ -1,8 +1,10 @@
 """Оффлайн-тесты контента и клавиатуры StuGo Travel."""
 
 from bot.content import (
+    SECTION_BUTTONS,
     SECTIONS,
     button_labels,
+    find_key_by_label,
     find_section_by_label,
 )
 from bot.keyboards import _LAYOUT, main_menu
@@ -34,3 +36,23 @@ def test_keyboard_builds():
     kb = main_menu()
     rendered = [btn.text for row in kb.keyboard for btn in row]
     assert set(rendered) == set(button_labels())
+
+
+def test_section_buttons_reference_valid_sections():
+    for key, buttons in SECTION_BUTTONS.items():
+        assert key in SECTIONS, f"кнопка для несуществующего раздела: {key}"
+        for label, url in buttons:
+            assert label.strip()
+            assert url.startswith("https://") or url.startswith("http://")
+
+
+def test_currency_has_exchanger_button():
+    assert "currency" in SECTION_BUTTONS
+    labels_urls = SECTION_BUTTONS["currency"]
+    assert any("t.me/" in url for _, url in labels_urls)
+
+
+def test_find_key_by_label():
+    for key, (label, _body) in SECTIONS.items():
+        assert find_key_by_label(label) == key
+    assert find_key_by_label("левый текст") is None
