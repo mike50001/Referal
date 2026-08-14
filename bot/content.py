@@ -396,6 +396,7 @@ SECTION_BUTTONS: dict[str, list[tuple[str, str]]] = {
         ("💬 Написать обменнику", "https://t.me/MISHACASHBot"),
     ],
     "tours": [
+        ("📝 Оставить заявку на экскурсию", "https://t.me/linaplaye"),
         ("📲 GetYourGuide", "https://www.getyourguide.com"),
         (
             "📲 Klook — бонус ฿150",
