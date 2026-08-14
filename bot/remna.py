@@ -114,6 +114,33 @@ class Remna:
         expiry_ms = _to_ms(resp.get("expireAt")) or new_ms
         return uuid, username, expiry_ms, link
 
+    def set_expiry(self, user_id: int, expiry_ms: int):
+        """Создаёт или обновляет пользователя с АБСОЛЮТНЫМ сроком expiry_ms.
+        Возвращает (id, username, expiry_ms, link)."""
+        username = f"tg{user_id}"
+        user = self.get_user(user_id)
+        if user:
+            payload = {
+                "id": user["id"],
+                "expireAt": _to_iso(expiry_ms),
+                "status": "ACTIVE",
+                "activeInternalSquads": [self.squad],
+            }
+            resp = self._req("PATCH", "/users", json=payload)
+        else:
+            payload = {
+                "username": username,
+                "status": "ACTIVE",
+                "expireAt": _to_iso(expiry_ms),
+                "trafficLimitBytes": 0,
+                "trafficLimitStrategy": "NO_RESET",
+                "activeInternalSquads": [self.squad],
+                "telegramId": int(user_id),
+            }
+            resp = self._req("POST", "/users", json=payload)
+        return (resp.get("id"), username,
+                _to_ms(resp.get("expireAt")) or expiry_ms, resp.get("subscriptionUrl", ""))
+
     def get_link(self, user_id: int) -> str:
         """Ссылка-подписка пользователя (или '' если пользователя нет)."""
         user = self.get_user(user_id)
