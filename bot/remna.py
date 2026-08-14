@@ -63,7 +63,7 @@ class Remna:
         r = self._client.request(method, f"{self.base}/api{path}", json=json)
         if allow_404 and r.status_code == 404:
             return None
-        if r.status_code not in (200, 201):
+        if not (200 <= r.status_code < 300):
             raise RemnaError(f"{method} {path}: HTTP {r.status_code} {r.text[:300]}")
         if not r.content:
             return {}
