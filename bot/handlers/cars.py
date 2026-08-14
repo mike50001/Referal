@@ -71,12 +71,18 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             )
             return
 
-        photos = car_photo_paths(car["id"])
-        if photos:
+        # Приоритет: коды фото (file_id) → файлы из папки → без фото.
+        file_ids = list(car.get("photos") or [])
+        media = None
+        if file_ids:
+            media = [InputMediaPhoto(fid) for fid in file_ids[:10]]
+        else:
+            paths = car_photo_paths(car["id"])
+            if paths:
+                media = [InputMediaPhoto(p.read_bytes()) for p in paths[:10]]
+
+        if media:
             # Есть фото: отправляем альбом + отдельным сообщением карточку.
-            media = [
-                InputMediaPhoto(p.read_bytes()) for p in photos[:10]
-            ]
             await context.bot.send_media_group(
                 chat_id=query.message.chat_id, media=media
             )
