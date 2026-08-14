@@ -1,16 +1,11 @@
-"""Обработчики команд Telegram-бота."""
+"""Обработчики бота STU GO TRAVEL."""
 
 from telegram.ext import Application
 
-from . import checklist, common, country, currency, phrases, time, weather
+from . import sections, start
 
 
 def register_all(app: Application) -> None:
-    """Зарегистрировать все обработчики в приложении."""
-    common.register(app)
-    weather.register(app)
-    currency.register(app)
-    country.register(app)
-    time.register(app)
-    phrases.register(app)
-    checklist.register(app)
+    """Зарегистрировать все обработчики."""
+    start.register(app)
+    sections.register(app)  # обработчик кнопок — последним
