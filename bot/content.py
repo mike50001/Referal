@@ -252,6 +252,7 @@ CARS: list[dict[str, str]] = [
             "AgACAgIAAxkBAANNan7aYlInDkTmfTNnFJ7noxPVzxoAApEaaxsYQvBLiAz_1kDz4bQBAAMCAAN5AAM9BA",
             "AgACAgIAAxkBAANMan7aYgtewT1ONbmD0GzLroT4obUAApAaaxsYQvBLxLUvmy9K9FUBAAMCAAN5AAM9BA",
             "AgACAgIAAxkBAANLan7aYmEXPI6UtTQiyaItJgo6tdMAAo8aaxsYQvBLjeeycVMFtSwBAAMCAAN5AAM9BA",
+            "AgACAgIAAxkBAANOan7aYi9WcWvPteADgIyACtnxr2wAApIaaxsYQvBLlw57eTX20CgBAAMCAAN5AAM9BA",
         ],
     },
     {
