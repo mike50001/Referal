@@ -8,6 +8,7 @@ from telegram import BotCommand, Update
 from telegram.ext import Application, ApplicationBuilder, ContextTypes
 
 from .config import Config
+from .content import DESCRIPTION, SHORT_DESCRIPTION
 from .handlers import register_all
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,13 @@ async def _on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def _post_init(app: Application) -> None:
     await app.bot.set_my_commands(_COMMANDS)
+    # Описание для экрана «Что умеет этот бот?» (видно до старта и после
+    # удаления переписки) и короткое описание в профиле.
+    try:
+        await app.bot.set_my_description(DESCRIPTION)
+        await app.bot.set_my_short_description(SHORT_DESCRIPTION)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Не удалось обновить описание бота: %s", exc)
     me = await app.bot.get_me()
     logger.info("Бот @%s запущен.", me.username)
 
