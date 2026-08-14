@@ -395,6 +395,17 @@ SECTION_BUTTONS: dict[str, list[tuple[str, str]]] = {
     "currency": [
         ("💬 Написать обменнику", "https://t.me/MISHACASHBot"),
     ],
+    "tours": [
+        ("📲 GetYourGuide", "https://www.getyourguide.com"),
+        (
+            "📲 Klook — бонус ฿150",
+            "https://www.klook.com/ru/invite/MF84KT/?utm_campaign="
+            "platform-share&utm_content=platform%3Dios_pagespm%3D"
+            "Invite_textversion%3D1_shareid%3D3D8D0C32-74F3-447D-93C3-"
+            "01A33059C5D9&utm_medium=link-copy&utm_source=link-copy&"
+            "_currency=THB",
+        ),
+    ],
 }
 
 
