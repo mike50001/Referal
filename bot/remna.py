@@ -90,7 +90,7 @@ class Remna:
             base = base if base > now_ms else now_ms
             new_ms = base + add_ms
             payload = {
-                "uuid": user["uuid"],
+                "uuid": user["id"],
                 "expireAt": _to_iso(new_ms),
                 "status": "ACTIVE",
                 "activeInternalSquads": [self.squad],
@@ -109,7 +109,7 @@ class Remna:
             }
             resp = self._req("POST", "/users", json=payload)
 
-        uuid = resp.get("uuid")
+        uuid = resp.get("id")
         link = resp.get("subscriptionUrl", "")
         expiry_ms = _to_ms(resp.get("expireAt")) or new_ms
         return uuid, username, expiry_ms, link
@@ -124,7 +124,7 @@ class Remna:
         if not user:
             raise RemnaError("пользователь не найден (нет ключа)")
         self._req("PATCH", "/users", json={
-            "uuid": user["uuid"],
+            "uuid": user["id"],
             "status": "ACTIVE" if enabled else "DISABLED",
         })
 
@@ -132,7 +132,7 @@ class Remna:
         user = self.get_user(user_id)
         if not user:
             raise RemnaError("пользователь не найден (нет ключа)")
-        self._req("DELETE", f"/users/{user['uuid']}")
+        self._req("DELETE", f"/users/{user['id']}")
 
 
 # ---------- само-тест: python remna.py ----------
