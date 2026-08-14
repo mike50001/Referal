@@ -206,13 +206,19 @@ CARS: list[dict[str, str]] = [
         "id": "ford_everest",
         "name": "🚗 Ford Everest Bi-Turbo 2023",
         "details": (
-            "🚗 <b>Ford Everest Bi-Turbo 2023</b> (Titanium)\n\n"
-            "Большой премиальный внедорожник для семьи и поездок по острову.\n\n"
-            "• 7 мест, кожаный салон\n"
-            "• Bi-Turbo дизель, автомат\n"
-            "• Панорамная крыша\n"
-            "• Полный набор опций\n\n"
-            "💬 Цена и бронирование — уточним напрямую."
+            "🚗 <b>Ford Everest Bi-Turbo 2023</b>\n\n"
+            "<b>Особенности:</b>\n"
+            "» Камера кругового обзора 360°\n"
+            "» Apple CarPlay\n"
+            "» Android Auto\n"
+            "» 7 мест\n"
+            "» Двухзонный климат-контроль\n"
+            "» Автоматическая коробка передач\n"
+            "» Страховка первого класса (полное каско)\n\n"
+            "💵 <b>Цена:</b>\n"
+            "3 дня — 9 000 бат\n"
+            "1 неделя — 17 500 бат\n"
+            "1 месяц — 55 000 бат"
         ),
     },
     {
@@ -277,6 +283,23 @@ def car_photo_paths(car_id: str) -> list[Path]:
         p for p in folder.iterdir()
         if p.is_file() and p.suffix.lower() in _IMAGE_EXTS
     )
+
+
+# Контакт менеджера по аренде авто для кнопки «Забронировать эту машину».
+# Укажи username БЕЗ @ (например "stugo_rent"). Пусто — кнопка не показывается.
+CAR_BOOKING_CONTACT = ""
+
+
+def car_booking_url(car_name: str) -> str | None:
+    """Ссылка на менеджера с предзаполненным текстом брони (или None)."""
+    if not CAR_BOOKING_CONTACT:
+        return None
+    from urllib.parse import quote
+
+    # Убираем ведущий эмодзи из названия для текста сообщения.
+    clean = car_name.lstrip("🚗 ").strip()
+    text = quote(f"Здравствуйте! Хочу забронировать {clean}")
+    return f"https://t.me/{CAR_BOOKING_CONTACT}?text={text}"
 
 
 # Inline-кнопки-ссылки под текстом раздела.

@@ -11,7 +11,7 @@ from telegram import (
 from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
-from ..content import CARS, car_photo_paths, get_car
+from ..content import CARS, car_booking_url, car_photo_paths, get_car
 
 PREFIX = "cars:"
 
@@ -37,13 +37,19 @@ def _list_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 
-def _car_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
+def _car_keyboard(car: dict[str, str]) -> InlineKeyboardMarkup:
+    rows = [
         [
-            [InlineKeyboardButton("⬅️ Назад к списку", callback_data=f"{PREFIX}list")],
-            [InlineKeyboardButton("🏠 В меню", callback_data=f"{PREFIX}menu")],
-        ]
-    )
+            InlineKeyboardButton("🚗 К списку авто", callback_data=f"{PREFIX}list"),
+            InlineKeyboardButton("⬅️ В меню", callback_data=f"{PREFIX}menu"),
+        ],
+    ]
+    url = car_booking_url(car["name"])
+    if url:
+        rows.append(
+            [InlineKeyboardButton("📩 Забронировать эту машину", url=url)]
+        )
+    return InlineKeyboardMarkup(rows)
 
 
 async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -78,14 +84,14 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 chat_id=query.message.chat_id,
                 text=car["details"],
                 parse_mode=ParseMode.HTML,
-                reply_markup=_car_keyboard(),
+                reply_markup=_car_keyboard(car),
             )
         else:
             # Фото нет — просто показываем карточку на месте.
             await query.edit_message_text(
                 car["details"],
                 parse_mode=ParseMode.HTML,
-                reply_markup=_car_keyboard(),
+                reply_markup=_car_keyboard(car),
             )
 
 
