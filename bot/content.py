@@ -411,7 +411,7 @@ def car_booking_url(car_name: str) -> str | None:
 # Чтобы добавить кнопку в любой раздел — просто впиши сюда его ключ.
 SECTION_BUTTONS: dict[str, list[tuple[str, str]]] = {
     "currency": [
-        ("💬 Написать обменнику", "https://t.me/MISHACASHBot"),
+        ("💬 Написать обменнику", "https://t.me/ogmgb"),
     ],
     "tours": [
         ("📝 Оставить заявку на экскурсию", "https://t.me/linaplaye"),
