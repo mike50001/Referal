@@ -287,7 +287,7 @@ def car_photo_paths(car_id: str) -> list[Path]:
 
 # Контакт менеджера по аренде авто для кнопки «Забронировать эту машину».
 # Укажи username БЕЗ @ (например "stugo_rent"). Пусто — кнопка не показывается.
-CAR_BOOKING_CONTACT = ""
+CAR_BOOKING_CONTACT = "Stu_Art_x"
 
 
 def car_booking_url(car_name: str) -> str | None:
