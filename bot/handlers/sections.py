@@ -8,6 +8,7 @@ from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
 from ..content import SECTION_BUTTONS, SECTIONS, find_key_by_label
 from ..keyboards import main_menu
+from .cars import entry_button as cars_entry_button
 
 _FALLBACK = (
     "Не понял запрос 🤔\n"
@@ -32,6 +33,17 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         return
 
     body = SECTIONS[key][1]
+
+    # Раздел «Аренда авто» открывает подменю со списком машин.
+    if key == "car":
+        await update.message.reply_text(
+            body,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            reply_markup=cars_entry_button(),
+        )
+        return
+
     inline = _inline_for(key)
     # Reply-клавиатура постоянная (is_persistent) и остаётся на экране,
     # поэтому для разделов со ссылкой прикрепляем inline-кнопки.
