@@ -82,6 +82,12 @@ def ensure_user(uid: int, username: str, first_name: str, referrer_id=None):
         return True
 
 
+def all_user_ids():
+    """Список Telegram id всех пользователей бота (для рассылки)."""
+    with _conn() as con:
+        return [r["user_id"] for r in con.execute("SELECT user_id FROM users")]
+
+
 def add_balance(uid: int, amount: float, as_earning: bool = False):
     with _conn() as con:
         if as_earning:

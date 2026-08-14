@@ -406,6 +406,42 @@ def _user_card(target: int):
     return text, kb
 
 
+@bot.message_handler(commands=["broadcast"])
+def cmd_broadcast(message):
+    if message.from_user.id not in config.ADMIN_IDS:
+        return
+    parts = message.text.split(maxsplit=1)
+    if len(parts) < 2 or not parts[1].strip():
+        bot.send_message(
+            message.chat.id,
+            "Использование: <code>/broadcast текст сообщения</code>\n\n"
+            "Поддерживается HTML. К каждому сообщению добавится кнопка "
+            "«📱 Моя подписка».")
+        return
+    body = parts[1]
+    admin_chat = message.chat.id
+    uids = db.all_user_ids()
+
+    def _run():
+        kb = types.InlineKeyboardMarkup()
+        kb.add(types.InlineKeyboardButton("📱 Моя подписка", callback_data="menu:sub"))
+        sent = failed = 0
+        for uid in uids:
+            try:
+                bot.send_message(uid, body, reply_markup=kb,
+                                 disable_web_page_preview=True)
+                sent += 1
+            except Exception:
+                failed += 1
+            time.sleep(0.05)  # ~20 сообщений/сек — под лимит Telegram
+        bot.send_message(admin_chat,
+                         f"✅ Рассылка завершена.\nОтправлено: <b>{sent}</b>\n"
+                         f"Не доставлено (блок/удалён): <b>{failed}</b>")
+
+    bot.send_message(admin_chat, f"📣 Начинаю рассылку на {len(uids)} пользователей…")
+    threading.Thread(target=_run, daemon=True).start()
+
+
 @bot.message_handler(commands=["user"])
 def cmd_user(message):
     if message.from_user.id not in config.ADMIN_IDS:
