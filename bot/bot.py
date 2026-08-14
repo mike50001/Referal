@@ -38,6 +38,9 @@ def main_menu(uid: int) -> types.InlineKeyboardMarkup:
     kb.add(types.InlineKeyboardButton("📱 Моя подписка", callback_data="menu:sub"))
     kb.add(types.InlineKeyboardButton("📖 Инструкция", callback_data="menu:help"))
     kb.add(types.InlineKeyboardButton("🎁 Рефералка", callback_data="menu:ref"))
+    _support = admin_link()
+    if _support:
+        kb.add(types.InlineKeyboardButton("💬 Поддержка", url=_support))
     if uid in config.ADMIN_IDS:
         kb.add(types.InlineKeyboardButton("🛠 Админка", callback_data="menu:admin"))
     return kb
