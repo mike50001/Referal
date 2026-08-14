@@ -223,6 +223,13 @@ CARS: list[dict[str, str]] = [
             "1 неделя — 17 500 бат\n"
             "1 месяц — 55 000 бат"
         ),
+        "photos": [
+            "AgACAgIAAxkBAAMhan7GIE7Bl9fUtimpGpx2IwABnkEzAALeGWsbGELwSxH2kwj_GjOAAQADAgADeQADPQQ",
+            "AgACAgIAAxkBAAMian7GINUS0zj7_qnnhAEEv0iiI1QAAt8ZaxsYQvBLKTQ3UsETg7ABAAMCAAN5AAM9BA",
+            "AgACAgIAAxkBAAMjan7GIJ7nhphuAAFqAb30gr4pWmTOAALgGWsbGELwS2lyMzTS0UuAAQADAgADeQADPQQ",
+            "AgACAgIAAxkBAAMkan7GIG1WtTb9h0d92n4WM934j-wAAuEZaxsYQvBL1A1ekPf7EUoBAAMCAAN5AAM9BA",
+            "AgACAgIAAxkBAAMlan7GIIir0DqCpg7dyu20Kt3XF2kAAuIZaxsYQvBLZgOIC5bzVBcBAAMCAAN5AAM9BA",
+        ],
     },
     {
         "id": "byd_seal",

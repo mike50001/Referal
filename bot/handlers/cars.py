@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from telegram import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -12,6 +14,8 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
 from ..content import CARS, car_booking_url, car_photo_paths, get_car
+
+logger = logging.getLogger(__name__)
 
 PREFIX = "cars:"
 
@@ -83,9 +87,15 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
         if media:
             # Есть фото: отправляем альбом + отдельным сообщением карточку.
-            await context.bot.send_media_group(
-                chat_id=query.message.chat_id, media=media
-            )
+            # Если код фото неверен — не роняем карточку, показываем без фото.
+            try:
+                await context.bot.send_media_group(
+                    chat_id=query.message.chat_id, media=media
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Не удалось отправить фото для %s: %s", car["id"], exc
+                )
             await context.bot.send_message(
                 chat_id=query.message.chat_id,
                 text=car["details"],
