@@ -1,0 +1,11 @@
+# Конфигурация сборки для Railway (Nixpacks).
+# Фиксируем версию Python, чтобы сборка была воспроизводимой.
+
+[phases.setup]
+nixPkgs = ["python311"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "python run.py"
