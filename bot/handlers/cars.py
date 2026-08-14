@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+    Update,
+)
 from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
-from ..content import CARS, get_car
+from ..content import CARS, car_photo_paths, get_car
 
 PREFIX = "cars:"
 
@@ -59,11 +64,29 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 "Машина не найдена.", reply_markup=_list_keyboard()
             )
             return
-        await query.edit_message_text(
-            car["details"],
-            parse_mode=ParseMode.HTML,
-            reply_markup=_car_keyboard(),
-        )
+
+        photos = car_photo_paths(car["id"])
+        if photos:
+            # Есть фото: отправляем альбом + отдельным сообщением карточку.
+            media = [
+                InputMediaPhoto(p.read_bytes()) for p in photos[:10]
+            ]
+            await context.bot.send_media_group(
+                chat_id=query.message.chat_id, media=media
+            )
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text=car["details"],
+                parse_mode=ParseMode.HTML,
+                reply_markup=_car_keyboard(),
+            )
+        else:
+            # Фото нет — просто показываем карточку на месте.
+            await query.edit_message_text(
+                car["details"],
+                parse_mode=ParseMode.HTML,
+                reply_markup=_car_keyboard(),
+            )
 
 
 def register(app: Application) -> None:

@@ -206,9 +206,13 @@ CARS: list[dict[str, str]] = [
         "id": "ford_everest",
         "name": "🚗 Ford Everest Bi-Turbo 2023",
         "details": (
-            "🚗 <b>Ford Everest Bi-Turbo 2023</b>\n\n"
-            "Большой внедорожник, 7 мест — для семьи и поездок по острову.\n\n"
-            "💬 Детали, фото и бронирование — уточним напрямую."
+            "🚗 <b>Ford Everest Bi-Turbo 2023</b> (Titanium)\n\n"
+            "Большой премиальный внедорожник для семьи и поездок по острову.\n\n"
+            "• 7 мест, кожаный салон\n"
+            "• Bi-Turbo дизель, автомат\n"
+            "• Панорамная крыша\n"
+            "• Полный набор опций\n\n"
+            "💬 Цена и бронирование — уточним напрямую."
         ),
     },
     {
@@ -255,6 +259,24 @@ def get_car(car_id: str) -> dict[str, str] | None:
         if car["id"] == car_id:
             return car
     return None
+
+
+# Папка с фото машин: bot/assets/cars/<id>/*.jpg
+from pathlib import Path  # noqa: E402
+
+_CARS_ASSETS = Path(__file__).resolve().parent / "assets" / "cars"
+_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+def car_photo_paths(car_id: str) -> list[Path]:
+    """Отсортированный список файлов-фото для машины (пусто, если нет)."""
+    folder = _CARS_ASSETS / car_id
+    if not folder.is_dir():
+        return []
+    return sorted(
+        p for p in folder.iterdir()
+        if p.is_file() and p.suffix.lower() in _IMAGE_EXTS
+    )
 
 
 # Inline-кнопки-ссылки под текстом раздела.
