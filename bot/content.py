@@ -248,6 +248,9 @@ CARS: list[dict[str, str]] = [
             "1 неделя — 17 500 бат\n"
             "1 месяц — 55 000 бат"
         ),
+        "photos": [
+            "AgACAgIAAxkBAANNan7aYlInDkTmfTNnFJ7noxPVzxoAApEaaxsYQvBLiAz_1kDz4bQBAAMCAAN5AAM9BA",
+        ],
     },
     {
         "id": "toyota_yaris",
