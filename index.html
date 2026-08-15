@@ -804,10 +804,14 @@ function viewSettings(){
           в облаке.</p>
           <p class="note">Последняя выгрузка: <b>${st.lastExport ? fmtDate(st.lastExport) : "не делали ни разу"}</b></p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn primary" id="s-export">Выгрузить копию</button>
-            <button class="btn" id="s-import">Загрузить копию</button>
+            <button class="btn primary" id="s-export">Выгрузить файлом</button>
+            <button class="btn" id="s-text">Копия текстом</button>
+            <button class="btn" id="s-import">Загрузить из файла</button>
             <button class="btn" id="s-csv">Клиенты в CSV</button>
           </div>
+          <p class="note">Если скачивание файла не срабатывает — браузеры иногда его
+          блокируют — берите «Копию текстом»: она работает всегда и через неё же
+          база восстанавливается обратно.</p>
           <input type="file" id="s-file" accept="application/json" hidden>
         </div>
       </div>
@@ -828,6 +832,7 @@ function viewSettings(){
     save(); toast("Сохранено");
   });
   bind("s-export","click", exportJSON);
+  bind("s-text","click", textBackup);
   bind("s-import","click", () => document.getElementById("s-file").click());
   bind("s-file","change", importJSON);
   bind("s-csv","click", exportCSV);
@@ -1019,18 +1024,114 @@ function dealForm(d){
 
 /* ============ импорт / экспорт ============ */
 
-function download(name, text, type){
-  const url = URL.createObjectURL(new Blob([text], {type}));
-  const a = document.createElement("a");
-  a.href = url; a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+const snapshot = () => JSON.stringify(S, null, 2);
+
+/* Файл отдаём тремя путями: штатный механизм опубликованной страницы,
+   обычная ссылка на blob (файл на диске), и текстовое поле как последний
+   рубеж — резервная копия должна получаться в любом окружении. */
+async function offerFile(name, text, mime){
+  try{
+    if(typeof claude !== "undefined" && claude && typeof claude.use === "function"){
+      const dl = await claude.use("downloads");
+      if(dl){
+        try{
+          await dl.save({filename:name, data:text});
+          return true;
+        }catch(err){
+          const code = (err && err.code) || "unavailable";
+          if(code === "declined"){ toast("Сохранение отменено"); return false; }
+          if(code === "rate_limited"){ toast("Подождите пару секунд и повторите"); return false; }
+          if(code === "extension_not_enabled" || code === "rejected_extension"){
+            try{
+              await dl.save({filename:name.replace(/\.[^.]+$/, ".txt"), data:text});
+              return true;
+            }catch(e2){
+              if(e2 && e2.code === "declined"){ toast("Сохранение отменено"); return false; }
+            }
+          }
+        }
+      }
+    }
+  }catch(e){ /* пробуем следующий путь */ }
+
+  try{
+    const url = URL.createObjectURL(new Blob([text], {type:mime}));
+    const a = document.createElement("a");
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  }catch(e){ /* падаем в текстовый режим */ }
+
+  textBackup();
+  return false;
 }
 
-function exportJSON(){
-  download("deal-book-" + today() + ".json", JSON.stringify(S, null, 2), "application/json");
-  S.settings.lastExport = today();
-  save();
-  toast("Копия выгружена — положите её в облако");
+async function exportJSON(){
+  const ok = await offerFile("deal-book-" + today() + ".json", snapshot(), "application/json");
+  if(ok){
+    S.settings.lastExport = today();
+    save();
+    toast("Копия выгружена — положите её в облако");
+  }
+}
+
+/* Резервная копия текстом: работает всегда, даже когда скачивание файлов
+   недоступно. Она же и обратный путь — вставили текст, нажали загрузить. */
+function textBackup(){
+  scrim.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <header><h3>Резервная копия текстом</h3></header>
+      <div class="body">
+        <p class="note">Скопируйте всё содержимое поля и сохраните где угодно —
+        в заметки, в письмо себе, в облако. Чтобы восстановить базу, вставьте
+        сюда сохранённый текст и нажмите «Загрузить из поля».</p>
+        <div class="field">
+          <label>Данные базы</label>
+          <textarea id="tb-area" style="min-height:220px;font-family:var(--mono);font-size:12px"></textarea>
+        </div>
+      </div>
+      <footer>
+        <button class="btn" id="tb-load" style="margin-right:auto">Загрузить из поля</button>
+        <button class="btn ghost" id="tb-close">Закрыть</button>
+        <button class="btn primary" id="tb-copy">Скопировать</button>
+      </footer>
+    </div>`;
+  scrim.hidden = false;
+
+  const area = document.getElementById("tb-area");
+  area.value = snapshot();
+  area.focus(); area.select();
+
+  document.getElementById("tb-close").onclick = closeModal;
+
+  document.getElementById("tb-copy").onclick = async () => {
+    area.select();
+    let ok = false;
+    try{ await navigator.clipboard.writeText(area.value); ok = true; }
+    catch(e){ try{ ok = document.execCommand("copy"); }catch(e2){} }
+    if(ok){
+      S.settings.lastExport = today();
+      localStorage.setItem(KEY, JSON.stringify(S));
+      toast("Скопировано — сохраните текст в надёжном месте");
+      closeModal(); render();
+    } else {
+      toast("Скопируйте вручную: текст уже выделен");
+    }
+  };
+
+  document.getElementById("tb-load").onclick = () => {
+    try{
+      const d = JSON.parse(area.value);
+      if(!d || !Array.isArray(d.clients)) throw new Error("bad");
+      if(!confirm("Заменить текущую базу данными из поля?")) return;
+      S = {
+        clients:d.clients, properties:d.properties || [], deals:d.deals || [],
+        settings:Object.assign(blank().settings, d.settings || {})
+      };
+      closeModal(); save(); toast("База восстановлена");
+    }catch(err){ toast("Текст не читается — нужен JSON, скопированный отсюда же"); }
+  };
 }
 
 function importJSON(e){
@@ -1053,15 +1154,15 @@ function importJSON(e){
   e.target.value = "";
 }
 
-function exportCSV(){
+async function exportCSV(){
   const head = ["Имя","Контакт","Источник","Бюджет","Сегмент","Ищет","Цель","Стадия","Следующий контакт","Заметки"];
   const esc2 = s => '"' + String(s ?? "").replace(/"/g,'""') + '"';
   const lines = [head.map(esc2).join(";")].concat(S.clients.map(c => [
     c.name, c.contact, c.source, c.budget, c.budget ? tierOf(c.budget).name : "",
     ptypeName(c.ptype), purposeName(c.purpose), stageName(c.stage), c.nextFollowUp, c.notes
   ].map(esc2).join(";")));
-  download("clients-" + today() + ".csv", "﻿" + lines.join("\r\n"), "text/csv");
-  toast("CSV выгружен");
+  const ok = await offerFile("clients-" + today() + ".csv", "﻿" + lines.join("\r\n"), "text/csv");
+  if(ok) toast("Список клиентов выгружен");
 }
 
 /* ============ события ============ */
