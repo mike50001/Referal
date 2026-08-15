@@ -1,0 +1,1099 @@
+<title>Phuket Deal Book</title>
+
+<style>
+:root{
+  --ground:#EEF2F1;
+  --surface:#FFFFFF;
+  --surface-2:#F7FAF9;
+  --line:#D4DEDC;
+  --line-strong:#B3C3C0;
+  --text:#12232A;
+  --text-2:#4A625F;
+  --text-3:#7A918D;
+  --accent:#0B6E6E;
+  --accent-ink:#FFFFFF;
+  --accent-soft:#DCEBEA;
+  --brass:#8A6718;
+  --brass-soft:#F2E9D2;
+  --good:#2F7D51;  --good-soft:#DEEFE4;
+  --warn:#9A6E12;  --warn-soft:#F7EBD4;
+  --crit:#A83E27;  --crit-soft:#F7E0DA;
+  --shadow:0 1px 2px rgba(18,35,42,.06), 0 8px 24px rgba(18,35,42,.06);
+
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --mono:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+
+  --r:10px;
+  --gap:16px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#0A1416;
+    --surface:#111F22;
+    --surface-2:#16282B;
+    --line:#23383C;
+    --line-strong:#32504F;
+    --text:#E4EFEC;
+    --text-2:#9DB5B1;
+    --text-3:#6C8682;
+    --accent:#42A9A2;
+    --accent-ink:#04211F;
+    --accent-soft:#113736;
+    --brass:#D3AA55;
+    --brass-soft:#332A11;
+    --good:#5FBF86;  --good-soft:#123020;
+    --warn:#DBAA55;  --warn-soft:#332811;
+    --crit:#E27C62;  --crit-soft:#331C15;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#0A1416;
+  --surface:#111F22;
+  --surface-2:#16282B;
+  --line:#23383C;
+  --line-strong:#32504F;
+  --text:#E4EFEC;
+  --text-2:#9DB5B1;
+  --text-3:#6C8682;
+  --accent:#42A9A2;
+  --accent-ink:#04211F;
+  --accent-soft:#113736;
+  --brass:#D3AA55;
+  --brass-soft:#332A11;
+  --good:#5FBF86;  --good-soft:#123020;
+  --warn:#DBAA55;  --warn-soft:#332811;
+  --crit:#E27C62;  --crit-soft:#331C15;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+/* ---------- shell ---------- */
+.shell{display:grid;grid-template-columns:212px 1fr;min-height:100vh}
+.rail{
+  background:var(--surface);
+  border-right:1px solid var(--line);
+  display:flex;flex-direction:column;gap:4px;
+  padding:18px 12px;
+  position:sticky;top:0;height:100vh;
+}
+.brand{padding:4px 10px 18px;display:flex;flex-direction:column;gap:2px}
+.brand b{font-size:16px;letter-spacing:-.01em}
+.brand span{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text-3);
+}
+.navbtn{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:8px;border:0;background:transparent;
+  color:var(--text-2);cursor:pointer;text-align:left;width:100%;
+}
+.navbtn:hover{background:var(--surface-2);color:var(--text)}
+.navbtn[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.navbtn svg{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7}
+.navbtn .cnt{
+  margin-left:auto;font-family:var(--mono);font-size:11px;
+  color:var(--text-3);font-variant-numeric:tabular-nums;
+}
+.rail-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:0 4px}
+.nudge{
+  font-size:12px;line-height:1.4;padding:10px;border-radius:8px;
+  background:var(--warn-soft);color:var(--warn);border:1px solid transparent;
+}
+
+main{padding:26px 30px 60px;max-width:1280px}
+.head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.head h1{margin:0;font-size:25px;letter-spacing:-.02em;text-wrap:balance}
+.head p{margin:2px 0 0;color:var(--text-2);font-size:13.5px}
+.head .spacer{flex:1}
+
+/* ---------- controls ---------- */
+.btn{
+  border:1px solid var(--line-strong);background:var(--surface);
+  padding:8px 14px;border-radius:8px;cursor:pointer;font-size:14px;
+}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--text-2)}
+.btn.ghost:hover{background:var(--surface-2);color:var(--text)}
+.btn.danger{color:var(--crit);border-color:var(--line-strong)}
+.btn.sm{padding:5px 10px;font-size:13px}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+input[type=text],input[type=date],input[type=number],select,textarea{
+  background:var(--surface);border:1px solid var(--line-strong);
+  border-radius:8px;padding:8px 10px;
+}
+input[type=text]::placeholder{color:var(--text-3)}
+.search{min-width:230px;flex:1;max-width:340px}
+
+/* ---------- tiles ---------- */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:var(--gap);margin-bottom:26px}
+.tile{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:15px 16px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--shadow);
+}
+.tile .lbl{
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--text-3);
+}
+.tile .val{font-size:27px;letter-spacing:-.025em;font-variant-numeric:tabular-nums;line-height:1.05}
+.tile .sub{font-size:12.5px;color:var(--text-2)}
+.tile.money .val{color:var(--brass)}
+.tile.alert{border-color:var(--crit)}
+.tile.alert .val{color:var(--crit)}
+
+/* ---------- panels ---------- */
+.grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:var(--gap);align-items:start}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+.panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);overflow:hidden;
+}
+.panel > h2{
+  margin:0;padding:13px 16px;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--text-3);font-weight:600;
+}
+.panel .body{padding:16px}
+
+/* funnel */
+.funnel{display:flex;flex-direction:column;gap:9px}
+.frow{display:grid;grid-template-columns:130px 1fr 44px;align-items:center;gap:10px}
+.frow .nm{font-size:13px;color:var(--text-2)}
+.frow .bar{height:9px;border-radius:5px;background:var(--surface-2);overflow:hidden}
+.frow .bar i{display:block;height:100%;background:var(--accent);border-radius:5px}
+.frow .n{
+  font-family:var(--mono);font-size:12.5px;text-align:right;
+  font-variant-numeric:tabular-nums;color:var(--text-2);
+}
+
+/* task list */
+.tasks{display:flex;flex-direction:column}
+.task{
+  display:flex;gap:12px;align-items:center;padding:11px 16px;
+  border-bottom:1px solid var(--line);
+}
+.task:last-child{border-bottom:0}
+.task .who{font-weight:600;font-size:14px}
+.task .meta{font-size:12.5px;color:var(--text-2)}
+.task .when{
+  margin-left:auto;font-family:var(--mono);font-size:12px;
+  font-variant-numeric:tabular-nums;color:var(--text-2);white-space:nowrap;
+}
+.task.late .when{color:var(--crit);font-weight:600}
+
+/* ---------- tables ---------- */
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{
+  text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-3);font-weight:600;white-space:nowrap;
+}
+td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+td.name{font-weight:600}
+td.act{text-align:right;white-space:nowrap}
+.sub{font-size:12.5px;color:var(--text-2)}
+.empty{padding:44px 20px;text-align:center;color:var(--text-2)}
+.empty b{display:block;margin-bottom:6px;color:var(--text);font-size:15px}
+
+/* pills */
+.pill{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;
+  background:var(--surface-2);color:var(--text-2);
+}
+.pill.s-new{background:var(--surface-2);color:var(--text-2)}
+.pill.s-qualified{background:var(--accent-soft);color:var(--accent)}
+.pill.s-selection{background:var(--accent-soft);color:var(--accent)}
+.pill.s-viewing{background:var(--warn-soft);color:var(--warn)}
+.pill.s-negotiation{background:var(--warn-soft);color:var(--warn)}
+.pill.s-reserved{background:var(--brass-soft);color:var(--brass)}
+.pill.s-won{background:var(--good-soft);color:var(--good)}
+.pill.s-lost{background:var(--crit-soft);color:var(--crit)}
+.pill.tag{background:var(--surface-2);color:var(--text-2);font-weight:500}
+.pill.offplan{background:var(--brass-soft);color:var(--brass)}
+
+/* ---------- modal ---------- */
+.scrim{
+  position:fixed;inset:0;background:rgba(8,20,22,.55);
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:40px 16px;overflow-y:auto;z-index:50;
+}
+.scrim[hidden]{display:none}
+.modal{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  width:100%;max-width:600px;box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+.modal header{
+  padding:16px 20px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:12px;
+}
+.modal header h3{margin:0;font-size:17px;letter-spacing:-.01em}
+.modal .body{padding:20px;display:flex;flex-direction:column;gap:14px}
+.modal footer{
+  padding:14px 20px;border-top:1px solid var(--line);
+  display:flex;gap:10px;justify-content:flex-end;
+}
+.field{display:flex;flex-direction:column;gap:5px}
+.field > label{
+  font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--text-3);
+}
+.field input,.field select,.field textarea{width:100%}
+.field textarea{min-height:70px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.row{grid-template-columns:1fr}}
+.calc{
+  background:var(--surface-2);border:1px solid var(--line);border-radius:8px;
+  padding:12px 14px;display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+}
+.calc .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3)}
+.calc .v{font-size:21px;font-variant-numeric:tabular-nums;color:var(--brass);letter-spacing:-.02em}
+
+.note{font-size:12.5px;color:var(--text-2);line-height:1.5}
+.stack{display:flex;flex-direction:column;gap:12px}
+.toast{
+  position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+  background:var(--text);color:var(--ground);
+  padding:10px 18px;border-radius:999px;font-size:14px;z-index:80;box-shadow:var(--shadow);
+}
+.toast[hidden]{display:none}
+
+@media (max-width:760px){
+  .shell{grid-template-columns:1fr}
+  .rail{position:static;height:auto;flex-direction:row;flex-wrap:wrap;border-right:0;border-bottom:1px solid var(--line)}
+  .brand{width:100%;padding-bottom:10px}
+  .navbtn{width:auto}
+  .navbtn .cnt{display:none}
+  .rail-foot{width:100%;flex-direction:row}
+  main{padding:20px 16px 50px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="shell">
+  <nav class="rail">
+    <div class="brand">
+      <b>Deal Book</b>
+      <span>Phuket · недвижимость</span>
+    </div>
+    <button class="navbtn" data-view="dash" aria-current="true">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 7h8V3h-8z"/></svg>
+      Обзор
+    </button>
+    <button class="navbtn" data-view="clients">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 11.5a3 3 0 0 0 0-6"/><path d="M17.5 20c0-2.6-1-4.3-2.6-5.2"/></svg>
+      Клиенты <span class="cnt" id="cnt-clients"></span>
+    </button>
+    <button class="navbtn" data-view="props">
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 4l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9.5 21v-6h5v6"/></svg>
+      Объекты <span class="cnt" id="cnt-props"></span>
+    </button>
+    <button class="navbtn" data-view="deals">
+      <svg viewBox="0 0 24 24"><path d="M4 20V9M10 20V4M16 20v-7M22 20H2"/></svg>
+      Сделки <span class="cnt" id="cnt-deals"></span>
+    </button>
+    <button class="navbtn" data-view="settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+      Настройки
+    </button>
+    <div class="rail-foot">
+      <div class="nudge" id="nudge" hidden></div>
+      <button class="btn sm ghost" id="themeBtn">Сменить тему</button>
+    </div>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+"use strict";
+
+/* ============ константы предметной области ============ */
+
+const STAGES = [
+  {id:"new",         name:"Новый",            p:.05},
+  {id:"qualified",   name:"Квалифицирован",   p:.15},
+  {id:"selection",   name:"Подбор объектов",  p:.30},
+  {id:"viewing",     name:"Просмотры",        p:.50},
+  {id:"negotiation", name:"Переговоры",       p:.70},
+  {id:"reserved",    name:"Бронь / депозит",  p:.90},
+  {id:"won",         name:"Сделка закрыта",   p:1},
+  {id:"lost",        name:"Отказ",            p:0}
+];
+const OPEN_STAGES = STAGES.filter(s => s.id !== "won" && s.id !== "lost").map(s => s.id);
+const stageName = id => (STAGES.find(s => s.id === id) || {}).name || id;
+const stageProb = id => { const s = STAGES.find(s => s.id === id); return s ? s.p : 0; };
+
+const DISTRICTS = ["Банг Тао","Лаян","Сурин","Камала","Патонг","Карон","Ката","Раваи","Найхарн",
+                   "Чалонг","Кату","Пхукет Таун","Май Као","Най Янг","Тхаланг"];
+
+const PTYPES = [{id:"condo",name:"Кондо"},{id:"villa",name:"Вилла"},{id:"land",name:"Земля"},{id:"any",name:"Любой"}];
+const ptypeName = id => (PTYPES.find(t => t.id === id) || {}).name || "—";
+
+const PURPOSE = [{id:"invest",name:"Инвестиция"},{id:"live",name:"Для себя"},{id:"both",name:"И то, и другое"}];
+const purposeName = id => (PURPOSE.find(p => p.id === id) || {}).name || "—";
+
+/* Бюджетные сегменты, млн бат — под реальный рынок Пхукета */
+const TIERS = [
+  {id:"t1", name:"до 5 млн ฿",     min:0,     max:5e6},
+  {id:"t2", name:"5–10 млн ฿",     min:5e6,   max:10e6},
+  {id:"t3", name:"10–20 млн ฿",    min:10e6,  max:20e6},
+  {id:"t4", name:"20–40 млн ฿",    min:20e6,  max:40e6},
+  {id:"t5", name:"40 млн ฿ и выше",min:40e6,  max:Infinity}
+];
+const tierOf = b => TIERS.find(t => b >= t.min && b < t.max) || TIERS[0];
+
+/* ============ состояние ============ */
+
+const KEY = "phuket_deal_book_v1";
+const blank = () => ({
+  clients:[], properties:[], deals:[],
+  settings:{ split:50, thbPerUsd:36, lastExport:null }
+});
+
+let S = load();
+let view = "dash";
+let filters = {q:"", stage:"", tier:"", ptype:"", district:"", dealStage:"open"};
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return blank();
+    const d = JSON.parse(raw);
+    const b = blank();
+    return {
+      clients: Array.isArray(d.clients) ? d.clients : [],
+      properties: Array.isArray(d.properties) ? d.properties : [],
+      deals: Array.isArray(d.deals) ? d.deals : [],
+      settings: Object.assign(b.settings, d.settings || {})
+    };
+  }catch(e){ return blank(); }
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch(e){ toast("Не удалось сохранить — закончилось место в браузере"); }
+  render();
+}
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4);
+
+/* ============ утилиты ============ */
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+const nf = new Intl.NumberFormat("ru-RU",{maximumFractionDigits:0});
+const thb = n => nf.format(Math.round(n || 0)) + " ฿";
+const usd = n => "$" + nf.format(Math.round((n || 0) / (S.settings.thbPerUsd || 36)));
+const mln = n => (n >= 1e6 ? (n/1e6).toFixed(n % 1e6 ? 1 : 0).replace(".",",") + " млн ฿" : thb(n));
+
+const today = () => new Date().toISOString().slice(0,10);
+function daysFrom(d){
+  if(!d) return null;
+  return Math.round((new Date(d+"T00:00:00") - new Date(today()+"T00:00:00")) / 86400000);
+}
+function whenLabel(d){
+  const n = daysFrom(d);
+  if(n === null) return "—";
+  if(n < 0) return "просрочено " + (-n) + " дн.";
+  if(n === 0) return "сегодня";
+  if(n === 1) return "завтра";
+  return "через " + n + " дн.";
+}
+function fmtDate(d){
+  if(!d) return "—";
+  const [y,m,dd] = d.split("-");
+  return dd + "." + m + "." + y;
+}
+
+let toastT;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { t.hidden = true; }, 2600);
+}
+
+const clientById = id => S.clients.find(c => c.id === id);
+const propById   = id => S.properties.find(p => p.id === id);
+
+/* Комиссия агента = сумма × процент застройщика × ваша доля сплита */
+function payout(deal){
+  return (deal.amount || 0) * ((deal.commissionPct || 0)/100) * ((deal.splitPct ?? S.settings.split)/100);
+}
+
+/* ============ рендер ============ */
+
+const main = document.getElementById("main");
+
+function render(){
+  document.getElementById("cnt-clients").textContent = S.clients.length || "";
+  document.getElementById("cnt-props").textContent   = S.properties.length || "";
+  document.getElementById("cnt-deals").textContent   = S.deals.filter(d => OPEN_STAGES.includes(d.stage)).length || "";
+  document.querySelectorAll(".navbtn").forEach(b =>
+    b.setAttribute("aria-current", String(b.dataset.view === view)));
+  renderNudge();
+  ({dash:viewDash, clients:viewClients, props:viewProps, deals:viewDeals, settings:viewSettings}[view])();
+}
+
+function renderNudge(){
+  const el = document.getElementById("nudge");
+  const has = S.clients.length + S.deals.length > 0;
+  const last = S.settings.lastExport;
+  const stale = !last || daysFrom(last) < -7;
+  if(has && stale){
+    el.hidden = false;
+    el.innerHTML = "База хранится только в этом браузере. "
+      + "<b>Сделайте резервную копию</b> — вкладка «Настройки».";
+  } else el.hidden = true;
+}
+
+/* ---------- Обзор ---------- */
+
+function viewDash(){
+  const openDeals = S.deals.filter(d => OPEN_STAGES.includes(d.stage));
+  const pipeline  = openDeals.reduce((s,d) => s + (d.amount || 0), 0);
+  const expected  = openDeals.reduce((s,d) => s + payout(d) * stageProb(d.stage), 0);
+
+  const year = new Date().getFullYear();
+  const wonThisYear = S.deals.filter(d => d.stage === "won"
+    && (d.closedAt || "").slice(0,4) === String(year));
+  const earned = wonThisYear.reduce((s,d) => s + payout(d), 0);
+
+  const activeClients = S.clients.filter(c => c.stage !== "lost" && c.stage !== "won");
+  const due = activeClients
+    .filter(c => c.nextFollowUp && daysFrom(c.nextFollowUp) <= 0)
+    .sort((a,b) => a.nextFollowUp.localeCompare(b.nextFollowUp));
+  const late = due.filter(c => daysFrom(c.nextFollowUp) < 0).length;
+
+  const soon = activeClients
+    .filter(c => c.nextFollowUp)
+    .sort((a,b) => a.nextFollowUp.localeCompare(b.nextFollowUp))
+    .slice(0,8);
+
+  const counts = STAGES.filter(s => s.id !== "lost")
+    .map(s => ({...s, n: S.clients.filter(c => c.stage === s.id).length}));
+  const maxN = Math.max(1, ...counts.map(c => c.n));
+
+  main.innerHTML = `
+    <div class="head">
+      <div>
+        <h1>Обзор</h1>
+        <p>Всё, что требует внимания сегодня.</p>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn primary" data-new="client">Добавить клиента</button>
+    </div>
+
+    <div class="tiles">
+      <div class="tile ${late ? "alert" : ""}">
+        <span class="lbl">К контакту</span>
+        <span class="val">${due.length}</span>
+        <span class="sub">${late ? late + " просрочено" : "всё вовремя"}</span>
+      </div>
+      <div class="tile">
+        <span class="lbl">Активных клиентов</span>
+        <span class="val">${activeClients.length}</span>
+        <span class="sub">из ${S.clients.length} в базе</span>
+      </div>
+      <div class="tile">
+        <span class="lbl">Сделок в работе</span>
+        <span class="val">${openDeals.length}</span>
+        <span class="sub">объём ${mln(pipeline)}</span>
+      </div>
+      <div class="tile money">
+        <span class="lbl">Ожидаемая комиссия</span>
+        <span class="val">${nf.format(Math.round(expected))} ฿</span>
+        <span class="sub">${usd(expected)} · с учётом вероятности</span>
+      </div>
+      <div class="tile money">
+        <span class="lbl">Заработано за ${year}</span>
+        <span class="val">${nf.format(Math.round(earned))} ฿</span>
+        <span class="sub">${usd(earned)} · сделок: ${wonThisYear.length}</span>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>Ближайшие контакты</h2>
+        ${soon.length ? `<div class="tasks">${soon.map(c => {
+          const n = daysFrom(c.nextFollowUp);
+          return `<div class="task ${n < 0 ? "late" : ""}">
+            <div>
+              <div class="who">${esc(c.name)}</div>
+              <div class="meta">${esc(c.contact || "контакт не указан")} · ${stageName(c.stage)}</div>
+            </div>
+            <div class="when">${whenLabel(c.nextFollowUp)}</div>
+          </div>`;
+        }).join("")}</div>`
+        : `<div class="empty"><b>Пусто</b>Поставьте клиентам дату следующего контакта — они появятся здесь.</div>`}
+      </div>
+
+      <div class="panel">
+        <h2>Воронка по клиентам</h2>
+        <div class="body">
+          <div class="funnel">
+            ${counts.map(c => `<div class="frow">
+              <span class="nm">${c.name}</span>
+              <span class="bar"><i style="width:${Math.round(c.n/maxN*100)}%"></i></span>
+              <span class="n">${c.n}</span>
+            </div>`).join("")}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ---------- Клиенты ---------- */
+
+function matchClient(c){
+  const q = filters.q.trim().toLowerCase();
+  if(q && !((c.name + " " + (c.contact||"") + " " + (c.notes||"") + " " + (c.source||""))
+      .toLowerCase().includes(q))) return false;
+  if(filters.stage && c.stage !== filters.stage) return false;
+  if(filters.ptype && c.ptype !== filters.ptype) return false;
+  if(filters.tier && tierOf(c.budget || 0).id !== filters.tier) return false;
+  return true;
+}
+
+function viewClients(){
+  const rows = S.clients.filter(matchClient).sort((a,b) => {
+    const A = a.nextFollowUp || "9999", B = b.nextFollowUp || "9999";
+    return A.localeCompare(B);
+  });
+
+  main.innerHTML = `
+    <div class="head">
+      <div>
+        <h1>Клиенты</h1>
+        <p>${S.clients.length} в базе · показано ${rows.length}</p>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn primary" data-new="client">Добавить клиента</button>
+    </div>
+
+    <div class="filters">
+      <input type="text" class="search" id="f-q" placeholder="Поиск по имени, контакту, заметке" value="${esc(filters.q)}">
+      <select id="f-stage">
+        <option value="">Все стадии</option>
+        ${STAGES.map(s => `<option value="${s.id}" ${filters.stage===s.id?"selected":""}>${s.name}</option>`).join("")}
+      </select>
+      <select id="f-tier">
+        <option value="">Любой бюджет</option>
+        ${TIERS.map(t => `<option value="${t.id}" ${filters.tier===t.id?"selected":""}>${t.name}</option>`).join("")}
+      </select>
+      <select id="f-ptype">
+        <option value="">Любой тип</option>
+        ${PTYPES.map(t => `<option value="${t.id}" ${filters.ptype===t.id?"selected":""}>${t.name}</option>`).join("")}
+      </select>
+    </div>
+
+    <div class="panel">
+      ${rows.length ? `<div class="tablewrap"><table>
+        <thead><tr>
+          <th>Клиент</th><th>Бюджет</th><th>Ищет</th><th>Стадия</th>
+          <th>Источник</th><th>Следующий контакт</th><th></th>
+        </tr></thead>
+        <tbody>${rows.map(c => {
+          const n = daysFrom(c.nextFollowUp);
+          const lateCls = c.nextFollowUp && n < 0 ? ' style="color:var(--crit);font-weight:600"' : "";
+          return `<tr>
+            <td class="name">${esc(c.name)}<div class="sub">${esc(c.contact || "—")}</div></td>
+            <td class="num">${c.budget ? mln(c.budget) : "—"}<div class="sub" style="text-align:right">${c.budget ? tierOf(c.budget).name : ""}</div></td>
+            <td>${ptypeName(c.ptype)}<div class="sub">${purposeName(c.purpose)}</div></td>
+            <td><span class="pill s-${c.stage}">${stageName(c.stage)}</span></td>
+            <td class="sub">${esc(c.source || "—")}</td>
+            <td class="num"${lateCls}>${c.nextFollowUp ? whenLabel(c.nextFollowUp) : "—"}
+              <div class="sub" style="text-align:right">${fmtDate(c.nextFollowUp)}</div></td>
+            <td class="act">
+              <button class="btn sm ghost" data-edit-client="${c.id}">Открыть</button>
+            </td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table></div>`
+      : `<div class="empty"><b>Никого не найдено</b>${S.clients.length ? "Смягчите фильтры." : "Добавьте первого клиента из вашей базы."}</div>`}
+    </div>`;
+
+  bind("f-q","input", e => { filters.q = e.target.value; softRender(); });
+  ["stage","tier","ptype"].forEach(k =>
+    bind("f-"+k,"change", e => { filters[k] = e.target.value; render(); }));
+}
+
+let softT;
+function softRender(){ clearTimeout(softT); softT = setTimeout(() => {
+  const el = document.getElementById("f-q");
+  const pos = el ? el.selectionStart : 0;
+  render();
+  const el2 = document.getElementById("f-q");
+  if(el2){ el2.focus(); el2.setSelectionRange(pos,pos); }
+}, 160); }
+
+/* ---------- Объекты ---------- */
+
+function viewProps(){
+  const q = filters.q.trim().toLowerCase();
+  const rows = S.properties.filter(p => {
+    if(filters.district && p.district !== filters.district) return false;
+    if(filters.ptype && p.ptype !== filters.ptype) return false;
+    if(q && !((p.project + " " + (p.developer||"") + " " + (p.notes||"")).toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a,b) => a.project.localeCompare(b.project,"ru"));
+
+  main.innerHTML = `
+    <div class="head">
+      <div>
+        <h1>Объекты</h1>
+        <p>Проекты и застройщики, с которыми вы работаете</p>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn primary" data-new="prop">Добавить объект</button>
+    </div>
+
+    <div class="filters">
+      <input type="text" class="search" id="f-q" placeholder="Поиск по проекту или застройщику" value="${esc(filters.q)}">
+      <select id="f-district">
+        <option value="">Все районы</option>
+        ${DISTRICTS.map(d => `<option ${filters.district===d?"selected":""}>${d}</option>`).join("")}
+      </select>
+      <select id="f-ptype">
+        <option value="">Любой тип</option>
+        ${PTYPES.filter(t=>t.id!=="any").map(t => `<option value="${t.id}" ${filters.ptype===t.id?"selected":""}>${t.name}</option>`).join("")}
+      </select>
+    </div>
+
+    <div class="panel">
+      ${rows.length ? `<div class="tablewrap"><table>
+        <thead><tr>
+          <th>Проект</th><th>Район</th><th>Тип</th><th>Цена</th>
+          <th>Комиссия</th><th>Сдача</th><th></th>
+        </tr></thead>
+        <tbody>${rows.map(p => `<tr>
+          <td class="name">${esc(p.project)}
+            <div class="sub">${esc(p.developer || "застройщик не указан")}</div></td>
+          <td>${esc(p.district || "—")}</td>
+          <td>${ptypeName(p.ptype)} ${p.offplan ? '<span class="pill offplan">off-plan</span>' : ""}</td>
+          <td class="num">${p.priceFrom ? mln(p.priceFrom) : "—"}${p.priceTo ? "<div class='sub' style='text-align:right'>до " + mln(p.priceTo) + "</div>" : ""}</td>
+          <td class="num">${p.commission ? p.commission + " %" : "—"}</td>
+          <td class="num">${esc(p.completion || "—")}</td>
+          <td class="act"><button class="btn sm ghost" data-edit-prop="${p.id}">Открыть</button></td>
+        </tr>`).join("")}</tbody>
+      </table></div>`
+      : `<div class="empty"><b>Объектов пока нет</b>Занесите проекты, по которым у вас есть договорённость с застройщиком или агентством.</div>`}
+    </div>`;
+
+  bind("f-q","input", e => { filters.q = e.target.value; softRender(); });
+  bind("f-district","change", e => { filters.district = e.target.value; render(); });
+  bind("f-ptype","change", e => { filters.ptype = e.target.value; render(); });
+}
+
+/* ---------- Сделки ---------- */
+
+function viewDeals(){
+  let rows = S.deals.slice();
+  if(filters.dealStage === "open") rows = rows.filter(d => OPEN_STAGES.includes(d.stage));
+  else if(filters.dealStage === "won") rows = rows.filter(d => d.stage === "won");
+  else if(filters.dealStage === "lost") rows = rows.filter(d => d.stage === "lost");
+  rows.sort((a,b) => stageProb(b.stage) - stageProb(a.stage));
+
+  const sum      = rows.reduce((s,d) => s + (d.amount || 0), 0);
+  const commSum  = rows.reduce((s,d) => s + payout(d), 0);
+  const weighted = rows.reduce((s,d) => s + payout(d) * stageProb(d.stage), 0);
+
+  main.innerHTML = `
+    <div class="head">
+      <div>
+        <h1>Сделки</h1>
+        <p>Объём ${mln(sum)} · комиссия ${nf.format(Math.round(commSum))} ฿${
+          filters.dealStage === "open" ? " · взвешенно " + nf.format(Math.round(weighted)) + " ฿" : ""}</p>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn primary" data-new="deal">Добавить сделку</button>
+    </div>
+
+    <div class="filters">
+      <select id="f-dealStage">
+        <option value="open" ${filters.dealStage==="open"?"selected":""}>В работе</option>
+        <option value="won"  ${filters.dealStage==="won"?"selected":""}>Закрытые</option>
+        <option value="lost" ${filters.dealStage==="lost"?"selected":""}>Отказы</option>
+        <option value=""     ${filters.dealStage===""?"selected":""}>Все</option>
+      </select>
+    </div>
+
+    <div class="panel">
+      ${rows.length ? `<div class="tablewrap"><table>
+        <thead><tr>
+          <th>Клиент</th><th>Объект</th><th>Сумма</th><th>Комиссия</th>
+          <th>Ваша доля</th><th>Стадия</th><th>Закрытие</th><th></th>
+        </tr></thead>
+        <tbody>${rows.map(d => {
+          const c = clientById(d.clientId), p = propById(d.propertyId);
+          return `<tr>
+            <td class="name">${c ? esc(c.name) : "<span class='sub'>клиент удалён</span>"}</td>
+            <td>${p ? esc(p.project) : "—"}${p ? `<div class="sub">${esc(p.district || "")}</div>` : ""}</td>
+            <td class="num">${mln(d.amount)}</td>
+            <td class="num">${d.commissionPct || 0} %<div class="sub" style="text-align:right">сплит ${d.splitPct ?? S.settings.split} %</div></td>
+            <td class="num" style="color:var(--brass);font-weight:600">${nf.format(Math.round(payout(d)))} ฿
+              <div class="sub" style="text-align:right">${usd(payout(d))}</div></td>
+            <td><span class="pill s-${d.stage}">${stageName(d.stage)}</span></td>
+            <td class="num">${fmtDate(d.stage === "won" ? d.closedAt : d.expectedClose)}</td>
+            <td class="act"><button class="btn sm ghost" data-edit-deal="${d.id}">Открыть</button></td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table></div>`
+      : `<div class="empty"><b>Сделок нет</b>${S.clients.length ? "Заведите сделку, когда клиент выбрал объект." : "Сначала добавьте клиентов и объекты."}</div>`}
+    </div>`;
+
+  bind("f-dealStage","change", e => { filters.dealStage = e.target.value; render(); });
+}
+
+/* ---------- Настройки ---------- */
+
+function viewSettings(){
+  const st = S.settings;
+  main.innerHTML = `
+    <div class="head"><div>
+      <h1>Настройки</h1>
+      <p>Параметры расчёта и резервные копии</p>
+    </div></div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h2>Расчёт комиссии</h2>
+        <div class="body stack">
+          <div class="row">
+            <div class="field">
+              <label>Ваш сплит с агентством, %</label>
+              <input type="number" id="s-split" min="0" max="100" value="${st.split}">
+            </div>
+            <div class="field">
+              <label>Курс, ฿ за $1</label>
+              <input type="number" id="s-rate" min="1" step="0.1" value="${st.thbPerUsd}">
+            </div>
+          </div>
+          <p class="note">Комиссия считается так: сумма сделки × процент застройщика × ваш сплит.
+          Сплит можно переопределить в каждой сделке отдельно — например, если по своим клиентам
+          у вас условия лучше.</p>
+          <div><button class="btn primary" id="s-save">Сохранить</button></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Резервная копия</h2>
+        <div class="body stack">
+          <p class="note">База лежит только в этом браузере. Очистка истории или другое
+          устройство — и данных нет. Выгружайте копию хотя бы раз в неделю и держите её
+          в облаке.</p>
+          <p class="note">Последняя выгрузка: <b>${st.lastExport ? fmtDate(st.lastExport) : "не делали ни разу"}</b></p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn primary" id="s-export">Выгрузить копию</button>
+            <button class="btn" id="s-import">Загрузить копию</button>
+            <button class="btn" id="s-csv">Клиенты в CSV</button>
+          </div>
+          <input type="file" id="s-file" accept="application/json" hidden>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>Данные</h2>
+      <div class="body stack">
+        <p class="note">В базе: клиентов — ${S.clients.length}, объектов — ${S.properties.length},
+        сделок — ${S.deals.length}.</p>
+        <div><button class="btn danger" id="s-wipe">Удалить все данные</button></div>
+      </div>
+    </div>`;
+
+  bind("s-save","click", () => {
+    S.settings.split = clamp(+document.getElementById("s-split").value, 0, 100);
+    S.settings.thbPerUsd = Math.max(1, +document.getElementById("s-rate").value || 36);
+    save(); toast("Сохранено");
+  });
+  bind("s-export","click", exportJSON);
+  bind("s-import","click", () => document.getElementById("s-file").click());
+  bind("s-file","change", importJSON);
+  bind("s-csv","click", exportCSV);
+  bind("s-wipe","click", () => {
+    if(confirm("Удалить всех клиентов, объекты и сделки? Отменить будет нельзя.")){
+      S = blank(); save(); toast("База очищена");
+    }
+  });
+}
+
+const clamp = (n,a,b) => Math.min(b, Math.max(a, isNaN(n) ? a : n));
+
+/* ============ формы ============ */
+
+const scrim = document.getElementById("scrim");
+function closeModal(){ scrim.hidden = true; scrim.innerHTML = ""; }
+scrim.addEventListener("click", e => { if(e.target === scrim) closeModal(); });
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !scrim.hidden) closeModal(); });
+
+function openModal(title, bodyHTML, onSave, onDelete){
+  scrim.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <header><h3>${esc(title)}</h3></header>
+      <div class="body">${bodyHTML}</div>
+      <footer>
+        ${onDelete ? '<button class="btn danger" id="m-del" style="margin-right:auto">Удалить</button>' : ""}
+        <button class="btn ghost" id="m-cancel">Отмена</button>
+        <button class="btn primary" id="m-save">Сохранить</button>
+      </footer>
+    </div>`;
+  scrim.hidden = false;
+  document.getElementById("m-cancel").onclick = closeModal;
+  document.getElementById("m-save").onclick = () => { if(onSave() !== false){ closeModal(); } };
+  if(onDelete) document.getElementById("m-del").onclick = () => {
+    if(confirm("Удалить запись?")){ onDelete(); closeModal(); }
+  };
+  const first = scrim.querySelector("input,select,textarea");
+  if(first) first.focus();
+}
+const val = id => (document.getElementById(id) || {}).value ?? "";
+const numv = id => +String(val(id)).replace(/\s/g,"") || 0;
+
+function clientForm(c){
+  const isNew = !c;
+  c = c || {id:uid(), name:"", contact:"", source:"", budget:0, ptype:"condo",
+            purpose:"invest", stage:"new", notes:"", nextFollowUp:"", createdAt:today()};
+  openModal(isNew ? "Новый клиент" : c.name, `
+    <div class="field"><label>Имя</label><input type="text" id="c-name" value="${esc(c.name)}" placeholder="Как обращаетесь"></div>
+    <div class="row">
+      <div class="field"><label>Контакт</label><input type="text" id="c-contact" value="${esc(c.contact)}" placeholder="@telegram / телефон"></div>
+      <div class="field"><label>Источник</label><input type="text" id="c-source" value="${esc(c.source)}" placeholder="старая база, рекомендация, реклама"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Бюджет, ฿</label><input type="number" id="c-budget" value="${c.budget || ""}" placeholder="12000000"></div>
+      <div class="field"><label>Стадия</label><select id="c-stage">
+        ${STAGES.map(s => `<option value="${s.id}" ${c.stage===s.id?"selected":""}>${s.name}</option>`).join("")}
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Что ищет</label><select id="c-ptype">
+        ${PTYPES.map(t => `<option value="${t.id}" ${c.ptype===t.id?"selected":""}>${t.name}</option>`).join("")}
+      </select></div>
+      <div class="field"><label>Цель покупки</label><select id="c-purpose">
+        ${PURPOSE.map(p => `<option value="${p.id}" ${c.purpose===p.id?"selected":""}>${p.name}</option>`).join("")}
+      </select></div>
+    </div>
+    <div class="field"><label>Следующий контакт</label><input type="date" id="c-follow" value="${c.nextFollowUp || ""}"></div>
+    <div class="field"><label>Заметки</label><textarea id="c-notes" placeholder="Что важно помнить: район, сроки, кто принимает решение">${esc(c.notes)}</textarea></div>
+  `, () => {
+    const name = val("c-name").trim();
+    if(!name){ toast("Укажите имя клиента"); return false; }
+    Object.assign(c, {
+      name, contact:val("c-contact").trim(), source:val("c-source").trim(),
+      budget:numv("c-budget"), stage:val("c-stage"), ptype:val("c-ptype"),
+      purpose:val("c-purpose"), nextFollowUp:val("c-follow"), notes:val("c-notes").trim()
+    });
+    if(isNew) S.clients.push(c);
+    save();
+  }, isNew ? null : () => {
+    S.clients = S.clients.filter(x => x.id !== c.id);
+    S.deals = S.deals.filter(d => d.clientId !== c.id);
+    save();
+  });
+}
+
+function propForm(p){
+  const isNew = !p;
+  p = p || {id:uid(), project:"", developer:"", district:"Банг Тао", ptype:"condo",
+            priceFrom:0, priceTo:0, commission:5, offplan:true, completion:"", notes:""};
+  openModal(isNew ? "Новый объект" : p.project, `
+    <div class="row">
+      <div class="field"><label>Проект</label><input type="text" id="p-project" value="${esc(p.project)}"></div>
+      <div class="field"><label>Застройщик</label><input type="text" id="p-dev" value="${esc(p.developer)}"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Район</label><select id="p-district">
+        ${DISTRICTS.map(d => `<option ${p.district===d?"selected":""}>${d}</option>`).join("")}
+      </select></div>
+      <div class="field"><label>Тип</label><select id="p-ptype">
+        ${PTYPES.filter(t=>t.id!=="any").map(t => `<option value="${t.id}" ${p.ptype===t.id?"selected":""}>${t.name}</option>`).join("")}
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Цена от, ฿</label><input type="number" id="p-from" value="${p.priceFrom || ""}"></div>
+      <div class="field"><label>Цена до, ฿</label><input type="number" id="p-to" value="${p.priceTo || ""}"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Комиссия застройщика, %</label><input type="number" id="p-comm" step="0.5" value="${p.commission}"></div>
+      <div class="field"><label>Срок сдачи</label><input type="text" id="p-completion" value="${esc(p.completion)}" placeholder="Q4 2027 или «готов»"></div>
+    </div>
+    <div class="field"><label>Стадия</label><select id="p-offplan">
+      <option value="1" ${p.offplan?"selected":""}>Off-plan (строится)</option>
+      <option value="0" ${!p.offplan?"selected":""}>Готовый объект</option>
+    </select></div>
+    <div class="field"><label>Заметки</label><textarea id="p-notes" placeholder="Условия, контакт менеджера, квота иностранного freehold">${esc(p.notes)}</textarea></div>
+  `, () => {
+    const project = val("p-project").trim();
+    if(!project){ toast("Укажите название проекта"); return false; }
+    Object.assign(p, {
+      project, developer:val("p-dev").trim(), district:val("p-district"), ptype:val("p-ptype"),
+      priceFrom:numv("p-from"), priceTo:numv("p-to"), commission:+val("p-comm") || 0,
+      offplan:val("p-offplan") === "1", completion:val("p-completion").trim(), notes:val("p-notes").trim()
+    });
+    if(isNew) S.properties.push(p);
+    save();
+  }, isNew ? null : () => {
+    S.properties = S.properties.filter(x => x.id !== p.id);
+    S.deals.forEach(d => { if(d.propertyId === p.id) d.propertyId = ""; });
+    save();
+  });
+}
+
+function dealForm(d){
+  const isNew = !d;
+  d = d || {id:uid(), clientId:"", propertyId:"", amount:0, commissionPct:5,
+            splitPct:S.settings.split, stage:"selection", expectedClose:"", closedAt:"", notes:""};
+  if(!S.clients.length){ toast("Сначала добавьте хотя бы одного клиента"); return; }
+
+  openModal(isNew ? "Новая сделка" : "Сделка", `
+    <div class="field"><label>Клиент</label><select id="d-client">
+      ${S.clients.map(c => `<option value="${c.id}" ${d.clientId===c.id?"selected":""}>${esc(c.name)}</option>`).join("")}
+    </select></div>
+    <div class="field"><label>Объект</label><select id="d-prop">
+      <option value="">— не выбран —</option>
+      ${S.properties.map(p => `<option value="${p.id}" ${d.propertyId===p.id?"selected":""}>${esc(p.project)} · ${esc(p.district)}</option>`).join("")}
+    </select></div>
+    <div class="row">
+      <div class="field"><label>Сумма сделки, ฿</label><input type="number" id="d-amount" value="${d.amount || ""}" placeholder="12000000"></div>
+      <div class="field"><label>Стадия</label><select id="d-stage">
+        ${STAGES.map(s => `<option value="${s.id}" ${d.stage===s.id?"selected":""}>${s.name}</option>`).join("")}
+      </select></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Комиссия застройщика, %</label><input type="number" id="d-comm" step="0.5" value="${d.commissionPct}"></div>
+      <div class="field"><label>Ваш сплит, %</label><input type="number" id="d-split" min="0" max="100" value="${d.splitPct ?? S.settings.split}"></div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Ожидаемое закрытие</label><input type="date" id="d-expected" value="${d.expectedClose || ""}"></div>
+      <div class="field"><label>Фактически закрыта</label><input type="date" id="d-closed" value="${d.closedAt || ""}"></div>
+    </div>
+    <div class="calc"><span class="lbl">Ваша комиссия</span><span class="v" id="d-payout">—</span></div>
+    <div class="field"><label>Заметки</label><textarea id="d-notes">${esc(d.notes)}</textarea></div>
+  `, () => {
+    const stage = val("d-stage");
+    Object.assign(d, {
+      clientId:val("d-client"), propertyId:val("d-prop"), amount:numv("d-amount"),
+      commissionPct:+val("d-comm") || 0, splitPct:clamp(+val("d-split"),0,100),
+      stage, expectedClose:val("d-expected"),
+      closedAt: stage === "won" ? (val("d-closed") || today()) : val("d-closed"),
+      notes:val("d-notes").trim()
+    });
+    if(isNew) S.deals.push(d);
+    save();
+  }, isNew ? null : () => { S.deals = S.deals.filter(x => x.id !== d.id); save(); });
+
+  const recalc = () => {
+    const v = numv("d-amount") * ((+val("d-comm") || 0)/100) * ((+val("d-split") || 0)/100);
+    document.getElementById("d-payout").textContent =
+      nf.format(Math.round(v)) + " ฿  ·  " + usd(v);
+  };
+  ["d-amount","d-comm","d-split"].forEach(id =>
+    document.getElementById(id).addEventListener("input", recalc));
+  document.getElementById("d-prop").addEventListener("change", e => {
+    const p = propById(e.target.value);
+    if(p && p.commission){ document.getElementById("d-comm").value = p.commission; recalc(); }
+  });
+  recalc();
+}
+
+/* ============ импорт / экспорт ============ */
+
+function download(name, text, type){
+  const url = URL.createObjectURL(new Blob([text], {type}));
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportJSON(){
+  download("deal-book-" + today() + ".json", JSON.stringify(S, null, 2), "application/json");
+  S.settings.lastExport = today();
+  save();
+  toast("Копия выгружена — положите её в облако");
+}
+
+function importJSON(e){
+  const f = e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const d = JSON.parse(r.result);
+      if(!d || !Array.isArray(d.clients)) throw new Error("bad");
+      if(!confirm("Заменить текущую базу данными из файла?")) return;
+      S = {
+        clients:d.clients, properties:d.properties || [], deals:d.deals || [],
+        settings:Object.assign(blank().settings, d.settings || {})
+      };
+      save(); toast("Копия загружена");
+    }catch(err){ toast("Файл не читается — нужен JSON, выгруженный отсюда же"); }
+  };
+  r.readAsText(f);
+  e.target.value = "";
+}
+
+function exportCSV(){
+  const head = ["Имя","Контакт","Источник","Бюджет","Сегмент","Ищет","Цель","Стадия","Следующий контакт","Заметки"];
+  const esc2 = s => '"' + String(s ?? "").replace(/"/g,'""') + '"';
+  const lines = [head.map(esc2).join(";")].concat(S.clients.map(c => [
+    c.name, c.contact, c.source, c.budget, c.budget ? tierOf(c.budget).name : "",
+    ptypeName(c.ptype), purposeName(c.purpose), stageName(c.stage), c.nextFollowUp, c.notes
+  ].map(esc2).join(";")));
+  download("clients-" + today() + ".csv", "﻿" + lines.join("\r\n"), "text/csv");
+  toast("CSV выгружен");
+}
+
+/* ============ события ============ */
+
+function bind(id, ev, fn){
+  const el = document.getElementById(id);
+  if(el) el.addEventListener(ev, fn);
+}
+
+document.querySelectorAll(".navbtn").forEach(b => b.addEventListener("click", () => {
+  view = b.dataset.view;
+  filters = {q:"", stage:"", tier:"", ptype:"", district:"", dealStage:"open"};
+  render();
+}));
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme");
+  const isDark = cur ? cur === "dark"
+    : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
+});
+
+main.addEventListener("click", e => {
+  const t = e.target.closest("[data-new],[data-edit-client],[data-edit-prop],[data-edit-deal]");
+  if(!t) return;
+  if(t.dataset.new === "client") clientForm(null);
+  else if(t.dataset.new === "prop") propForm(null);
+  else if(t.dataset.new === "deal") dealForm(null);
+  else if(t.dataset.editClient) clientForm(clientById(t.dataset.editClient));
+  else if(t.dataset.editProp) propForm(propById(t.dataset.editProp));
+  else if(t.dataset.editDeal) dealForm(S.deals.find(d => d.id === t.dataset.editDeal));
+});
+
+render();
+</script>
