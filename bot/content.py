@@ -223,6 +223,15 @@ SECTIONS: dict[str, tuple[str, str]] = {
         "• Аквапарк\n"
         "• Мир Ханумана (Hanuman World)\n\n"
         "Организуют почти всё — кроме, разве что, полёта в космос 😏\n\n"
+        "🎁 Промокод <code>STU_gotravel</code> — скидка 3% на экскурсии\n\n"
+        "❗️<i>Скидка не действует на:</i>\n"
+        "• Hanuman World\n"
+        "• Fantasea Show\n"
+        "• Siam Niramit\n"
+        "• Carnival Magic\n"
+        "• Simon Cabaret Show\n\n"
+        "Жми на кнопку, чтобы забронировать — не забудь назвать промокод "
+        "<code>STU_gotravel</code> 🫶\n\n"
         "Хочешь забронировать сам(а), без посредников? Есть два удобных "
         "приложения:\n\n"
         "📲 <b>GetYourGuide</b> — экскурсии по всему миру, не только "
@@ -411,6 +420,15 @@ def car_booking_url(car_name: str) -> str | None:
     return f"https://t.me/{CAR_BOOKING_CONTACT}?text={text}"
 
 
+# Готовое сообщение для кнопки «Оставить заявку на экскурсию».
+from urllib.parse import quote as _quote  # noqa: E402
+
+_TOURS_REQUEST_TEXT = (
+    "Привет, я от Stu go travel, вот мой промокод STU_gotravel на скидку 3%"
+)
+_TOURS_REQUEST_URL = "https://t.me/krabi_sj?text=" + _quote(_TOURS_REQUEST_TEXT)
+
+
 # Inline-кнопки-ссылки под текстом раздела.
 # Ключ раздела -> список (подпись кнопки, URL).
 # Чтобы добавить кнопку в любой раздел — просто впиши сюда его ключ.
@@ -422,7 +440,11 @@ SECTION_BUTTONS: dict[str, list[tuple[str, str]]] = {
         ("📝 Оставить заявку", "https://t.me/Stu_Art_x"),
     ],
     "tours": [
-        ("📝 Оставить заявку на экскурсию", "https://t.me/krabi_sj"),
+        ("📝 Оставить заявку на экскурсию", _TOURS_REQUEST_URL),
+        (
+            "🌴 Полный каталог экскурсий",
+            "https://krabiguiding.com/excursions-phuket",
+        ),
         ("📲 GetYourGuide", "https://www.getyourguide.com"),
         (
             "📲 Klook — бонус ฿150",
