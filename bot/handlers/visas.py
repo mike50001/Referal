@@ -23,13 +23,18 @@ def list_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(rows)
 
 
-def _visa_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
-            [InlineKeyboardButton("🔙 К списку виз", callback_data=f"{PREFIX}list")],
-            [InlineKeyboardButton("🏠 В меню", callback_data=f"{PREFIX}menu")],
-        ]
+def _visa_keyboard(visa: dict) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    # Кнопки-ссылки конкретной визы (заявки и т.п.), если заданы.
+    for label, url in visa.get("buttons") or []:
+        rows.append([InlineKeyboardButton(label, url=url)])
+    rows.append(
+        [InlineKeyboardButton("🔙 К видам виз", callback_data=f"{PREFIX}list")]
     )
+    rows.append(
+        [InlineKeyboardButton("🔙 В меню", callback_data=f"{PREFIX}menu")]
+    )
+    return InlineKeyboardMarkup(rows)
 
 
 async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -56,7 +61,7 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             visa["details"],
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
-            reply_markup=_visa_keyboard(),
+            reply_markup=_visa_keyboard(visa),
         )
 
 
