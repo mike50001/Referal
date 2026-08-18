@@ -13,8 +13,8 @@ _LAYOUT: list[list[str]] = [
     ["docs", "currency"],
     ["car", "housing"],
     ["license", "work"],
-    ["sim", "insurance"],
-    ["visa"],
+    ["sim", "apps"],
+    ["insurance", "visa"],
     ["laws"],
     ["tours"],
 ]
