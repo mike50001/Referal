@@ -9,6 +9,7 @@ from telegram.ext import Application, ContextTypes, MessageHandler, filters
 from ..content import SECTION_BUTTONS, SECTIONS, find_key_by_label
 from ..keyboards import main_menu
 from .cars import entry_button as cars_entry_button
+from .visas import list_keyboard as visas_list_keyboard
 
 _FALLBACK = (
     "Не понял запрос 🤔\n"
@@ -41,6 +42,16 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
             reply_markup=cars_entry_button(),
+        )
+        return
+
+    # Раздел «Визы» показывает интро + инлайн-кнопки типов виз.
+    if key == "visa":
+        await update.message.reply_text(
+            body,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            reply_markup=visas_list_keyboard(),
         )
         return
 

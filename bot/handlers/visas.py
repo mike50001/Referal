@@ -1,0 +1,64 @@
+"""Подменю «Визы»: типы виз и их описания (inline-кнопки)."""
+
+from __future__ import annotations
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.constants import ParseMode
+from telegram.ext import Application, CallbackQueryHandler, ContextTypes
+
+from ..content import SECTIONS, VISAS, get_visa
+
+PREFIX = "visa:"
+
+_MENU_TEXT = "🏠 Главное меню — выбери раздел на клавиатуре ниже 👇"
+
+
+def list_keyboard() -> InlineKeyboardMarkup:
+    """Кнопки типов виз + «В меню» (показывается под интро раздела)."""
+    rows = [
+        [InlineKeyboardButton(v["name"], callback_data=f"{PREFIX}v:{v['id']}")]
+        for v in VISAS
+    ]
+    rows.append([InlineKeyboardButton("🔙 В меню", callback_data=f"{PREFIX}menu")])
+    return InlineKeyboardMarkup(rows)
+
+
+def _visa_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("🔙 К списку виз", callback_data=f"{PREFIX}list")],
+            [InlineKeyboardButton("🏠 В меню", callback_data=f"{PREFIX}menu")],
+        ]
+    )
+
+
+async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    data = query.data[len(PREFIX):]
+
+    if data == "list":
+        await query.edit_message_text(
+            SECTIONS["visa"][1],
+            parse_mode=ParseMode.HTML,
+            reply_markup=list_keyboard(),
+        )
+    elif data == "menu":
+        await query.edit_message_text(_MENU_TEXT, parse_mode=ParseMode.HTML)
+    elif data.startswith("v:"):
+        visa = get_visa(data[2:])
+        if visa is None:
+            await query.edit_message_text(
+                "Тип визы не найден.", reply_markup=list_keyboard()
+            )
+            return
+        await query.edit_message_text(
+            visa["details"],
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            reply_markup=_visa_keyboard(),
+        )
+
+
+def register(app: Application) -> None:
+    app.add_handler(CallbackQueryHandler(on_callback, pattern=f"^{PREFIX}"))
