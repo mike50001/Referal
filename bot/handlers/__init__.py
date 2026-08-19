@@ -2,7 +2,7 @@
 
 from telegram.ext import Application
 
-from . import cars, photoid, sections, start, visas
+from . import cars, docs, photoid, sections, start, visas
 
 
 def register_all(app: Application) -> None:
@@ -10,5 +10,6 @@ def register_all(app: Application) -> None:
     start.register(app)
     cars.register(app)      # callback-кнопки списка авто
     visas.register(app)     # callback-кнопки типов виз
+    docs.register(app)      # callback «Подробнее» в документах
     photoid.register(app)   # /photoid — получить код фото
     sections.register(app)  # обработчик кнопок-разделов — последним

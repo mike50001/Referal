@@ -9,6 +9,7 @@ from telegram.ext import Application, ContextTypes, MessageHandler, filters
 from ..content import SECTION_BUTTONS, SECTIONS, find_key_by_label
 from ..keyboards import main_menu
 from .cars import entry_button as cars_entry_button
+from .docs import entry_button as docs_entry_button
 from .visas import list_keyboard as visas_list_keyboard
 
 _FALLBACK = (
@@ -34,6 +35,16 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         return
 
     body = SECTIONS[key][1]
+
+    # Раздел «Документы» — краткие тезисы + кнопка «Подробнее».
+    if key == "docs":
+        await update.message.reply_text(
+            body,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            reply_markup=docs_entry_button(),
+        )
+        return
 
     # Раздел «Аренда авто» открывает подменю со списком машин.
     if key == "car":
