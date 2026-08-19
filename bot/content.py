@@ -635,7 +635,9 @@ KLOOK_URL = (
 # Фото под текстом раздела (коды file_id из /photoid).
 # Ключ раздела -> список кодов. Показываются перед текстом раздела.
 SECTION_PHOTOS: dict[str, list[str]] = {
-    # "license": ["AgACAg... код фото прав"],
+    "license": [
+        "AgACAgIAAxkBAAIBRGqFaGHXmFpCw_941szQUDovbkkaAAJfF2sbpsIpSL91M48am4kNAQADAgADeQADPQQ",
+    ],
 }
 
 
