@@ -24,6 +24,7 @@ from ..keyboards import main_menu
 logger = logging.getLogger(__name__)
 from .cars import entry_button as cars_entry_button
 from .docs import entry_button as docs_entry_button
+from .license import entry_button as license_entry_button
 from .visas import list_keyboard as visas_list_keyboard
 
 _FALLBACK = (
@@ -83,6 +84,17 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
             reply_markup=cars_entry_button(),
+        )
+        return
+
+    # Раздел «Права» — фото IDP + текст + кнопка «Как получить тайские права».
+    if key == "license":
+        await _send_section_photos(update, context, key)
+        await update.message.reply_text(
+            body,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            reply_markup=license_entry_button(),
         )
         return
 
