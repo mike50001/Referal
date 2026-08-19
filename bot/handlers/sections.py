@@ -2,12 +2,26 @@
 
 from __future__ import annotations
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+import logging
+
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+    Update,
+)
 from telegram.constants import ParseMode
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
 
-from ..content import SECTION_BUTTONS, SECTIONS, find_key_by_label
+from ..content import (
+    SECTION_BUTTONS,
+    SECTION_PHOTOS,
+    SECTIONS,
+    find_key_by_label,
+)
 from ..keyboards import main_menu
+
+logger = logging.getLogger(__name__)
 from .cars import entry_button as cars_entry_button
 from .docs import entry_button as docs_entry_button
 from .visas import list_keyboard as visas_list_keyboard
@@ -25,6 +39,22 @@ def _inline_for(key: str) -> InlineKeyboardMarkup | None:
         return None
     rows = [[InlineKeyboardButton(text, url=url)] for text, url in buttons]
     return InlineKeyboardMarkup(rows)
+
+
+async def _send_section_photos(update: Update, context, key: str) -> None:
+    """Отправить фото раздела (если заданы) перед текстом."""
+    photos = SECTION_PHOTOS.get(key)
+    if not photos:
+        return
+    chat_id = update.effective_chat.id
+    try:
+        if len(photos) == 1:
+            await context.bot.send_photo(chat_id, photos[0])
+        else:
+            media = [InputMediaPhoto(p) for p in photos[:10]]
+            await context.bot.send_media_group(chat_id, media)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Не удалось отправить фото раздела %s: %s", key, exc)
 
 
 async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -65,6 +95,9 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             reply_markup=visas_list_keyboard(),
         )
         return
+
+    # Фото раздела (если заданы) — перед текстом.
+    await _send_section_photos(update, context, key)
 
     inline = _inline_for(key)
     # Reply-клавиатура постоянная (is_persistent) и остаётся на экране,
