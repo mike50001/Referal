@@ -182,11 +182,17 @@ class TradingBot:
             return
 
         if self.cfg.dry_run:
-            self.log.info("[DRY_RUN] открыл бы %s qty=%s + SL/TP", side, qty)
+            mode = "трейлинг" if self.cfg.trailing_stop else "SL/TP"
+            self.log.info("[DRY_RUN] открыл бы %s qty=%s + %s", side, qty, mode)
             return
 
         self.ex.open_market(side, qty)
-        self.ex.place_sl_tp(side, plan.stop_loss, plan.take_profit)
+        if self.cfg.trailing_stop:
+            # Жёсткий стоп-лосс (защита) + трейлинг вместо фикс. тейка.
+            self.ex.place_stop_loss(side, plan.stop_loss)
+            self.ex.place_trailing_stop(side, qty, self.cfg.trailing_callback)
+        else:
+            self.ex.place_sl_tp(side, plan.stop_loss, plan.take_profit)
 
 
 def main() -> int:

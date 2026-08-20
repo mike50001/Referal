@@ -37,7 +37,9 @@ def fetch_klines(symbol: str, interval: str, limit: int) -> pd.DataFrame:
     return df.set_index("close_time")
 
 
-def run_backtest(cfg: Config, df: pd.DataFrame, fee: float = 0.0004) -> None:
+def compute_stats(cfg: Config, df: pd.DataFrame, fee: float = 0.0004) -> dict:
+    """Прогоняет стратегию по df и возвращает метрики (без печати).
+    Возвращает: trades, wins, winrate, pnl (USDT от старта 1000), pnl_pct."""
     strat = build_strategy(cfg)
     risk = RiskManager(cfg)
     min_bars = strat.min_bars()
@@ -99,16 +101,24 @@ def run_backtest(cfg: Config, df: pd.DataFrame, fee: float = 0.0004) -> None:
 
     pnl_total = balance - start_balance
     winrate = (wins / trades * 100) if trades else 0.0
+    return {
+        "trades": trades, "wins": wins, "winrate": winrate,
+        "pnl": pnl_total, "pnl_pct": pnl_total / start_balance * 100,
+        "balance": balance,
+    }
+
+
+def run_backtest(cfg: Config, df: pd.DataFrame, fee: float = 0.0004) -> None:
+    s = compute_stats(cfg, df, fee)
     print("=" * 50)
     print(f"Стратегия:     {cfg.strategy}")
     print(f"Символ:        {cfg.symbol} {cfg.interval}")
     print(f"ATR-стоп:      {cfg.use_atr_stop}")
     print(f"Свечей:        {len(df)}")
-    print(f"Сделок:        {trades}")
-    print(f"Прибыльных:    {wins} ({winrate:.1f}%)")
-    print(f"Старт баланс:  {start_balance:.2f} USDT")
-    print(f"Итог баланс:   {balance:.2f} USDT")
-    print(f"P&L:           {pnl_total:+.2f} USDT ({pnl_total / start_balance * 100:+.2f}%)")
+    print(f"Сделок:        {s['trades']}")
+    print(f"Прибыльных:    {s['wins']} ({s['winrate']:.1f}%)")
+    print(f"Итог баланс:   {s['balance']:.2f} USDT")
+    print(f"P&L:           {s['pnl']:+.2f} USDT ({s['pnl_pct']:+.2f}%)")
     print("=" * 50)
 
 

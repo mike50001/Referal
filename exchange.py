@@ -216,6 +216,40 @@ class BinanceFutures:
         except BinanceAPIException as e:
             log.error("Ошибка при выставлении SL/TP: %s", e.message)
 
+    def place_stop_loss(self, side: str, stop_loss: float) -> None:
+        """Только защитный стоп-лосс (без тейка) — для режима трейлинга."""
+        close_side = SIDE_SELL if side == "LONG" else SIDE_BUY
+        sl = self.round_price(stop_loss)
+        try:
+            self.client.futures_create_order(
+                symbol=self.cfg.symbol,
+                side=close_side,
+                type=FUTURE_ORDER_TYPE_STOP_MARKET,
+                stopPrice=sl,
+                closePosition=True,
+                timeInForce=TIME_IN_FORCE_GTC,
+            )
+            log.info("SL=%s выставлен", sl)
+        except BinanceAPIException as e:
+            log.error("Ошибка при выставлении SL: %s", e.message)
+
+    def place_trailing_stop(self, side: str, qty: float, callback_rate: float) -> None:
+        """Трейлинг-стоп (TRAILING_STOP_MARKET): биржа сама двигает стоп за ценой,
+        закрывает позицию при откате на callback_rate% от лучшей цены."""
+        close_side = SIDE_SELL if side == "LONG" else SIDE_BUY
+        try:
+            self.client.futures_create_order(
+                symbol=self.cfg.symbol,
+                side=close_side,
+                type="TRAILING_STOP_MARKET",
+                quantity=self.round_qty(qty),
+                callbackRate=round(callback_rate, 1),
+                reduceOnly=True,
+            )
+            log.info("Трейлинг-стоп выставлен: откат %.1f%%", callback_rate)
+        except BinanceAPIException as e:
+            log.error("Ошибка при выставлении трейлинга: %s", e.message)
+
     def close_position(self, position: dict) -> None:
         close_side = SIDE_SELL if position["side"] == "LONG" else SIDE_BUY
         self.client.futures_create_order(

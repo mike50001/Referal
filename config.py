@@ -73,6 +73,10 @@ class Config:
     trend_interval: str
     trend_ema: int
 
+    # Трейлинг-стоп
+    trailing_stop: bool       # использовать трейлинг вместо фикс. тейка
+    trailing_callback: float  # откат трейлинга в % (0.1..5)
+
     # Прочее
     poll_interval_sec: int
     dry_run: bool
@@ -112,6 +116,8 @@ class Config:
             trend_filter=_get_bool("TREND_FILTER", False),
             trend_interval=os.getenv("TREND_INTERVAL", "4h"),
             trend_ema=_get_int("TREND_EMA", 200),
+            trailing_stop=_get_bool("TRAILING_STOP", False),
+            trailing_callback=_get_float("TRAILING_CALLBACK", 1.0),
             poll_interval_sec=_get_int("POLL_INTERVAL_SEC", 30),
             dry_run=_get_bool("DRY_RUN", False),
             log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
@@ -137,5 +143,7 @@ class Config:
             raise ValueError("MAX_DRAWDOWN_PCT должен быть в диапазоне [0, 1).")
         if self.take_profit_roi < 0:
             raise ValueError("TAKE_PROFIT_ROI не может быть отрицательным.")
+        if self.trailing_stop and not (0.1 <= self.trailing_callback <= 5):
+            raise ValueError("TRAILING_CALLBACK должен быть в диапазоне [0.1, 5].")
         if self.leverage < 1:
             raise ValueError("LEVERAGE должен быть >= 1.")
