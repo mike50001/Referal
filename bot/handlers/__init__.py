@@ -2,7 +2,7 @@
 
 from telegram.ext import Application
 
-from . import cars, docs, license, photoid, sections, start, visas
+from . import apps, cars, docs, license, photoid, sections, start, visas
 
 
 def register_all(app: Application) -> None:
@@ -10,6 +10,7 @@ def register_all(app: Application) -> None:
     start.register(app)
     cars.register(app)      # callback-кнопки списка авто
     visas.register(app)     # callback-кнопки типов виз
+    apps.register(app)      # callback-кнопки категорий приложений
     docs.register(app)      # callback «Подробнее» в документах
     license.register(app)   # callback «Как получить тайские права»
     photoid.register(app)   # /photoid — получить код фото

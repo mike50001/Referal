@@ -22,6 +22,7 @@ from ..content import (
 from ..keyboards import main_menu
 
 logger = logging.getLogger(__name__)
+from .apps import list_keyboard as apps_list_keyboard
 from .cars import entry_button as cars_entry_button
 from .docs import entry_button as docs_entry_button
 from .license import entry_button as license_entry_button
@@ -95,6 +96,16 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
             parse_mode=ParseMode.HTML,
             disable_web_page_preview=True,
             reply_markup=license_entry_button(),
+        )
+        return
+
+    # Раздел «Полезные приложения» — интро + инлайн-кнопки категорий.
+    if key == "apps":
+        await update.message.reply_text(
+            body,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            reply_markup=apps_list_keyboard(),
         )
         return
 
