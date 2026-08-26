@@ -724,6 +724,9 @@ SECTION_BUTTONS: dict[str, list[tuple[str, str]]] = {
     "sim": [
         ("📲 Оформить eSIM (Klook)", KLOOK_URL),
     ],
+    "insurance": [
+        ("📝 Оставить заявку", "https://t.me/Stu_Art_x"),
+    ],
     "tours": [
         ("📝 Оставить заявку на экскурсию", _TOURS_REQUEST_URL),
         (
