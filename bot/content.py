@@ -21,7 +21,9 @@ PROMPT = "Погнали! Что интересует в первую очере
 
 # Баннер на /start: код фото (file_id из /photoid). Пусто — без баннера.
 # Если задан — бот шлёт картинку с приветствием-подписью, затем меню.
-START_BANNER = ""
+START_BANNER = (
+    "AgACAgIAAxkBAAIDQ2qP_g0NZOff6cTHxtXdgPifCoQvAAJfH2sblq2BSGoJwi08ViszAQADAgADdwADPQQ"
+)
 
 # Описание бота (экран «Что умеет этот бот?» — виден до старта и после
 # удаления переписки). Ставится через setMyDescription. Лимит 512 символов.
