@@ -27,7 +27,7 @@ def entry_button() -> InlineKeyboardMarkup:
     """Кнопка под текстом раздела «Аренда авто»."""
     return InlineKeyboardMarkup(
         [[InlineKeyboardButton(
-            "🚗 Посмотреть доступные авто", callback_data=f"{PREFIX}list"
+            "👉 🚗 СМОТРЕТЬ ДОСТУПНЫЕ АВТО", callback_data=f"{PREFIX}list"
         )]]
     )
 
