@@ -6,12 +6,15 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
-from ..content import LICENSE_THAI, SECTIONS
+from ..content import LICENSE_THAI, SECTIONS, tg_link
 
 PREFIX = "lic:"
 
 _MENU_TEXT = "🏠 Главное меню — выбери раздел на клавиатуре ниже 👇"
-_REQUEST_CONTACT = "https://t.me/Stu_Art_x"
+_REQUEST_CONTACT = tg_link(
+    "Stu_Art_x",
+    "Здравствуйте! Пишу из бота Stu Go Travel — интересуют тайские права",
+)
 
 
 def entry_button() -> InlineKeyboardMarkup:

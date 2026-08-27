@@ -668,7 +668,10 @@ def car_booking_url(car_name: str) -> str | None:
 
     # Убираем ведущий эмодзи из названия для текста сообщения.
     clean = car_name.lstrip("🚗 ").strip()
-    text = quote(f"Здравствуйте! Хочу забронировать {clean}")
+    text = quote(
+        f"Здравствуйте! Пишу из бота Stu Go Travel — хочу забронировать "
+        f"{clean}"
+    )
     return f"https://t.me/{CAR_BOOKING_CONTACT}?text={text}"
 
 
@@ -679,6 +682,21 @@ _TOURS_REQUEST_TEXT = (
     "Привет, я от Stu go travel, вот мой промокод STU_gotravel на скидку 3%"
 )
 _TOURS_REQUEST_URL = "https://t.me/krabi_sj?text=" + _quote(_TOURS_REQUEST_TEXT)
+
+
+def tg_link(username: str, text: str) -> str:
+    """Ссылка на чат с готовым (предзаполненным) сообщением."""
+    return f"https://t.me/{username}?text={_quote(text)}"
+
+
+# Готовые сообщения для кнопок на сотрудников (все — из бота Stu Go Travel).
+_MSG_CURRENCY = "Здравствуйте! Пишу из бота Stu Go Travel — интересует обмен валют"
+_MSG_INSURANCE = "Здравствуйте! Пишу из бота Stu Go Travel — интересует страховка"
+_MSG_LAWYER = "Здравствуйте! Пишу из бота Stu Go Travel — нужна помощь юриста"
+_MSG_HOUSING = "Здравствуйте! Пишу из бота Stu Go Travel — интересует недвижимость"
+_MSG_LICENSE = (
+    "Здравствуйте! Пишу из бота Stu Go Travel — интересуют тайские права"
+)
 
 # Реферальная ссылка Klook (бонус ฿150) — используется в нескольких разделах.
 KLOOK_URL = (
@@ -703,19 +721,19 @@ SECTION_PHOTOS: dict[str, list[str]] = {
 # Чтобы добавить кнопку в любой раздел — просто впиши сюда его ключ.
 SECTION_BUTTONS: dict[str, list[tuple[str, str]]] = {
     "currency": [
-        ("💬 Написать менеджеру", "https://t.me/ogmgb"),
+        ("💬 Написать менеджеру", tg_link("ogmgb", _MSG_CURRENCY)),
     ],
     "sim": [
         ("📲 Оформить eSIM (Klook)", KLOOK_URL),
     ],
     "insurance": [
-        ("📝 Оставить заявку", "https://t.me/Stu_Art_x"),
+        ("📝 Оставить заявку", tg_link("Stu_Art_x", _MSG_INSURANCE)),
     ],
     "laws": [
-        ("⚖️ Помощь юриста", "https://t.me/Stu_Art_x"),
+        ("⚖️ Помощь юриста", tg_link("Stu_Art_x", _MSG_LAWYER)),
     ],
     "housing": [
-        ("🏠 Написать по жилью", "https://t.me/didi2793"),
+        ("🏠 Написать по жилью", tg_link("didi2793", _MSG_HOUSING)),
     ],
     "tours": [
         ("📝 Оставить заявку на экскурсию", _TOURS_REQUEST_URL),
