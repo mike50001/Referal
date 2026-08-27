@@ -12,11 +12,11 @@ from .content import SECTIONS
 _LAYOUT: list[list[str]] = [
     ["docs", "currency"],
     ["car", "housing"],
-    ["license", "work"],
+    ["license", "tours"],
     ["sim", "apps"],
     ["insurance", "visa"],
     ["laws"],
-    ["tours"],
+    ["work"],
     ["channel"],
 ]
 
