@@ -17,6 +17,7 @@ _LAYOUT: list[list[str]] = [
     ["insurance", "visa"],
     ["laws"],
     ["tours"],
+    ["channel"],
 ]
 
 

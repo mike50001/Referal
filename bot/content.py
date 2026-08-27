@@ -299,6 +299,11 @@ SECTIONS: dict[str, tuple[str, str]] = {
         "на первое)\n"
         "📲 <b>Klook</b> — бонус ฿150 по ссылке, промокод <code>MF84KT</code>"
     ),
+    "channel": (
+        "📢 Телеграм-канал",
+        "📢 <b>Телеграм-канал Stu Go Travel</b>\n\n"
+        "Новости, гайды и полезное о переезде и жизни на Пхукете 👇"
+    ),
 }
 
 # Список доступных авто для раздела «Аренда авто».
@@ -734,6 +739,9 @@ SECTION_BUTTONS: dict[str, list[tuple[str, str]]] = {
     ],
     "housing": [
         ("🏠 Написать по жилью", tg_link("didi2793", _MSG_HOUSING)),
+    ],
+    "channel": [
+        ("📢 Открыть канал", "https://t.me/Stu_GoTravel"),
     ],
     "tours": [
         ("📝 Оставить заявку на экскурсию", _TOURS_REQUEST_URL),
