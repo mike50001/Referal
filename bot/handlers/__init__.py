@@ -2,11 +2,22 @@
 
 from telegram.ext import Application
 
-from . import apps, cars, docs, license, photoid, sections, start, visas
+from . import (
+    analytics,
+    apps,
+    cars,
+    docs,
+    license,
+    photoid,
+    sections,
+    start,
+    visas,
+)
 
 
-def register_all(app: Application) -> None:
+def register_all(app: Application, admin_id: int = 0) -> None:
     """Зарегистрировать все обработчики."""
+    analytics.register(app, admin_id)  # трекинг (группа -1), /stats, /myid
     start.register(app)
     cars.register(app)      # callback-кнопки списка авто
     visas.register(app)     # callback-кнопки типов виз

@@ -7,6 +7,7 @@ import logging
 from telegram import BotCommand, Update
 from telegram.ext import Application, ApplicationBuilder, ContextTypes
 
+from . import stats
 from .config import Config
 from .content import DESCRIPTION, SHORT_DESCRIPTION
 from .handlers import register_all
@@ -17,6 +18,9 @@ _COMMANDS = [
     BotCommand("start", "Запустить бота и открыть меню"),
     BotCommand("menu", "Показать меню разделов"),
 ]
+
+# Конфиг доступен обработчикам через post_init.
+_config: Config | None = None
 
 
 def _configure_logging(level: str) -> None:
@@ -36,6 +40,8 @@ async def _on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def _post_init(app: Application) -> None:
+    if _config is not None:
+        await stats.init(_config.database_url)
     await app.bot.set_my_commands(_COMMANDS)
     # Описание для экрана «Что умеет этот бот?» (видно до старта и после
     # удаления переписки) и короткое описание в профиле.
@@ -48,14 +54,21 @@ async def _post_init(app: Application) -> None:
     logger.info("Бот @%s запущен.", me.username)
 
 
+async def _post_shutdown(app: Application) -> None:
+    await stats.close()
+
+
 def build_application(config: Config) -> Application:
+    global _config
+    _config = config
     app = (
         ApplicationBuilder()
         .token(config.bot_token)
         .post_init(_post_init)
+        .post_shutdown(_post_shutdown)
         .build()
     )
-    register_all(app)
+    register_all(app, config.admin_id)
     app.add_error_handler(_on_error)
     return app
 
