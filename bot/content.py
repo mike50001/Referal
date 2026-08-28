@@ -757,7 +757,7 @@ SECTION_BUTTONS: dict[str, list[tuple[str, str]]] = {
             "🌴 Полный каталог экскурсий",
             "https://krabiguiding.com/excursions-phuket",
         ),
-        ("📲 GetYourGuide", "https://www.getyourguide.com"),
+        ("📲 GetYourGuide", "https://gyg.me/stuartx-app"),
         ("📲 Klook — бонус ฿150", KLOOK_URL),
     ],
 }
