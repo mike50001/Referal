@@ -6,7 +6,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
-from ..content import SECTIONS, VISAS, get_visa, tg_link
+from ..content import GREEN_CORRIDOR, SECTIONS, VISAS, get_visa, tg_link
 
 PREFIX = "visa:"
 
@@ -20,8 +20,26 @@ def list_keyboard() -> InlineKeyboardMarkup:
         for v in VISAS
     ]
     rows = [btns[i : i + 2] for i in range(0, len(btns), 2)]
+    rows.append(
+        [InlineKeyboardButton(
+            "🟢 Зелёный коридор", callback_data=f"{PREFIX}green"
+        )]
+    )
     rows.append([InlineKeyboardButton("🔙 В меню", callback_data=f"{PREFIX}menu")])
     return InlineKeyboardMarkup(rows)
+
+
+def _green_keyboard() -> InlineKeyboardMarkup:
+    msg = "Здравствуйте! Пишу из бота Stu Go Travel — интересует зелёный коридор"
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton(
+                "📝 Оставить заявку", url=tg_link("Stu_Art_x", msg)
+            )],
+            [InlineKeyboardButton("🔙 К видам виз", callback_data=f"{PREFIX}list")],
+            [InlineKeyboardButton("🔙 В меню", callback_data=f"{PREFIX}menu")],
+        ]
+    )
 
 
 def _visa_keyboard(visa: dict) -> InlineKeyboardMarkup:
@@ -59,6 +77,13 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         )
     elif data == "menu":
         await query.edit_message_text(_MENU_TEXT, parse_mode=ParseMode.HTML)
+    elif data == "green":
+        await query.edit_message_text(
+            GREEN_CORRIDOR,
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True,
+            reply_markup=_green_keyboard(),
+        )
     elif data.startswith("v:"):
         visa = get_visa(data[2:])
         if visa is None:
