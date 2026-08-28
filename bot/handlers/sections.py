@@ -80,6 +80,7 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
 
     # Раздел «Аренда авто» открывает подменю со списком машин.
     if key == "car":
+        await _send_section_photos(update, context, key)
         await update.message.reply_text(
             body,
             parse_mode=ParseMode.HTML,
