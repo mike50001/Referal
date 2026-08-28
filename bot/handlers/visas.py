@@ -6,7 +6,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
-from ..content import SECTIONS, VISAS, get_visa
+from ..content import SECTIONS, VISAS, get_visa, tg_link
 
 PREFIX = "visa:"
 
@@ -26,9 +26,17 @@ def list_keyboard() -> InlineKeyboardMarkup:
 
 def _visa_keyboard(visa: dict) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
-    # Кнопки-ссылки конкретной визы (заявки и т.п.), если заданы.
+    # Кнопки-ссылки конкретной визы (если заданы отдельно).
     for label, url in visa.get("buttons") or []:
         rows.append([InlineKeyboardButton(label, url=url)])
+    # Общая кнопка заявки под каждой визой -> @Stu_Art_x с готовым текстом.
+    name = visa["name"].split(maxsplit=1)[-1]  # без ведущего эмодзи
+    msg = f"Здравствуйте! Пишу из бота Stu Go Travel — интересует виза: {name}"
+    rows.append(
+        [InlineKeyboardButton(
+            "📝 Оставить заявку", url=tg_link("Stu_Art_x", msg)
+        )]
+    )
     rows.append(
         [InlineKeyboardButton("🔙 К видам виз", callback_data=f"{PREFIX}list")]
     )
