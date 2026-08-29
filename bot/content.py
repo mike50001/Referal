@@ -469,10 +469,10 @@ CARS: list[dict[str, str]] = [
     },
     {
         "id": "nissan_xtrail",
-        "name": "🚗 Nissan X-Trail",
+        "name": "🚗 Nissan X-Trail Hybrid 2018",
         "details": (
-            "🚗 <b>Nissan X-Trail</b>\n\n"
-            "💬 Год выпуска, характеристики и цена — скоро добавим.\n"
+            "🚗 <b>Nissan X-Trail Hybrid 2018</b>\n\n"
+            "💬 Характеристики и цена — скоро добавим.\n"
             "За деталями и бронированием пиши по кнопке 👇"
         ),
     },
