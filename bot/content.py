@@ -347,7 +347,7 @@ CARS: list[dict[str, str]] = [
         "name": "🚗 Ford Everest Bi-Turbo 2023",
         "details": (
             "🚗 <b>Ford Everest Bi-Turbo 2023</b>\n\n"
-            "<b>Особенности:</b>\n"
+            "<b>Характеристики:</b>\n"
             "» Камера кругового обзора 360°\n"
             "» Apple CarPlay\n"
             "» Android Auto\n"
@@ -373,7 +373,7 @@ CARS: list[dict[str, str]] = [
         "name": "🚗 BYD Seal Performance 2024",
         "details": (
             "🚗 <b>BYD Seal Performance 2024</b>\n\n"
-            "<b>Особенности:</b>\n"
+            "<b>Характеристики:</b>\n"
             "» Камера кругового обзора 360°\n"
             "» Apple CarPlay\n"
             "» Android Auto\n"
@@ -397,7 +397,7 @@ CARS: list[dict[str, str]] = [
         "name": "🚗 Toyota Yaris 2023",
         "details": (
             "🚗 <b>Toyota Yaris 2023</b>\n\n"
-            "<b>Особенности:</b>\n"
+            "<b>Характеристики:</b>\n"
             "» Камера заднего вида\n"
             "» Apple CarPlay\n"
             "» Android Auto\n"
@@ -423,7 +423,7 @@ CARS: list[dict[str, str]] = [
         "name": "🚗 Nissan Almera Turbo 2022",
         "details": (
             "🚗 <b>Nissan Almera Turbo 2022</b>\n\n"
-            "<b>Особенности:</b>\n"
+            "<b>Характеристики:</b>\n"
             "» Камера заднего вида\n"
             "» Apple CarPlay\n"
             "» Android Auto\n"
@@ -447,7 +447,7 @@ CARS: list[dict[str, str]] = [
         "name": "🚗 Mazda 2 2022",
         "details": (
             "🚗 <b>Mazda 2 2022</b>\n\n"
-            "<b>Особенности:</b>\n"
+            "<b>Характеристики:</b>\n"
             "» Камера заднего вида\n"
             "» Apple CarPlay\n"
             "» Android Auto\n"
