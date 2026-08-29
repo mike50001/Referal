@@ -467,6 +467,15 @@ CARS: list[dict[str, str]] = [
             "AgACAgIAAxkBAAN_an7jCAAB0ZBy6S5Z-Wg0Tacg9GAVAALOGmsbGELwS9dZDPfPvXiZAQADAgADeQADPQQ",
         ],
     },
+    {
+        "id": "nissan_xtrail",
+        "name": "🚗 Nissan X-Trail",
+        "details": (
+            "🚗 <b>Nissan X-Trail</b>\n\n"
+            "💬 Год выпуска, характеристики и цена — скоро добавим.\n"
+            "За деталями и бронированием пиши по кнопке 👇"
+        ),
+    },
 ]
 
 
