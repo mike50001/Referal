@@ -746,7 +746,6 @@ _IDP_PHOTO = (
 )
 
 SECTION_PHOTOS: dict[str, list[str]] = {
-    "license": [_IDP_PHOTO],
     "car": [_IDP_PHOTO],
 }
 
