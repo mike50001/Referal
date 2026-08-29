@@ -797,7 +797,7 @@ SECTION_BUTTONS: dict[str, list[tuple[str, str]]] = {
         ("⚖️ Помощь юриста", tg_link("Stu_Art_x", _MSG_LAWYER)),
     ],
     "housing": [
-        ("🏠 Написать по жилью", tg_link("didi2793", _MSG_HOUSING)),
+        ("🏠 Написать по жилью", tg_link("Stu_Art_x", _MSG_HOUSING)),
     ],
     "channel": [
         ("📢 Открыть канал", "https://t.me/Stu_GoTravel"),
