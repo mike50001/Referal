@@ -41,7 +41,10 @@ def main() -> None:
     print("=" * 60)
 
     # --- сделки за период ---
-    trades = client.futures_account_trades(symbol=cfg.symbol, startTime=start_ms)
+    # Binance при startTime отдаёт самые СТАРЫЕ сделки окна и режет свежие.
+    # Поэтому берём последние 1000 сделок и фильтруем по времени сами.
+    raw = client.futures_account_trades(symbol=cfg.symbol, limit=1000)
+    trades = [t for t in raw if int(t["time"]) >= start_ms]
 
     closes = [t for t in trades if float(t["realizedPnl"]) != 0.0]
     gross = sum(float(t["realizedPnl"]) for t in trades)
