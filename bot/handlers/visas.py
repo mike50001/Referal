@@ -15,11 +15,10 @@ _MENU_TEXT = "🏠 Главное меню — выбери раздел на к
 
 def list_keyboard() -> InlineKeyboardMarkup:
     """Кнопки типов виз (по две в ряд) + «В меню»."""
-    btns = [
-        InlineKeyboardButton(v["name"], callback_data=f"{PREFIX}v:{v['id']}")
+    rows = [
+        [InlineKeyboardButton(v["name"], callback_data=f"{PREFIX}v:{v['id']}")]
         for v in VISAS
     ]
-    rows = [btns[i : i + 2] for i in range(0, len(btns), 2)]
     rows.append(
         [InlineKeyboardButton(
             "🟢 Зелёный коридор", callback_data=f"{PREFIX}green"
