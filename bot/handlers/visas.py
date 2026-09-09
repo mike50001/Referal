@@ -48,13 +48,18 @@ def _visa_keyboard(visa: dict) -> InlineKeyboardMarkup:
     for label, url in visa.get("buttons") or []:
         rows.append([InlineKeyboardButton(label, url=url)])
     # Общая кнопка заявки под каждой визой -> @Stu_Art_x с готовым текстом.
-    name = visa["name"].split(maxsplit=1)[-1]  # без ведущего эмодзи
-    msg = f"Здравствуйте! Пишу из бота Stu Go Travel — интересует виза: {name}"
-    rows.append(
-        [InlineKeyboardButton(
-            "📝 Оставить заявку", url=tg_link("Stu_Art_x", msg)
-        )]
-    )
+    # info_only-визы (например, TR) — чисто информативные, без заявки.
+    if not visa.get("info_only"):
+        name = visa["name"].split(maxsplit=1)[-1]  # без ведущего эмодзи
+        msg = (
+            "Здравствуйте! Пишу из бота Stu Go Travel — интересует виза: "
+            f"{name}"
+        )
+        rows.append(
+            [InlineKeyboardButton(
+                "📝 Оставить заявку", url=tg_link("Stu_Art_x", msg)
+            )]
+        )
     rows.append(
         [InlineKeyboardButton("🔙 К видам виз", callback_data=f"{PREFIX}list")]
     )
