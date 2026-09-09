@@ -91,12 +91,27 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 "Тип визы не найден.", reply_markup=list_keyboard()
             )
             return
-        await query.edit_message_text(
-            visa["details"],
-            parse_mode=ParseMode.HTML,
-            disable_web_page_preview=True,
-            reply_markup=_visa_keyboard(visa),
-        )
+        pages = visa.get("pages")
+        if pages:
+            # Длинный гайд — отправляем несколькими сообщениями,
+            # клавиатуру вешаем на последнее.
+            chat_id = query.message.chat_id
+            for i, page in enumerate(pages):
+                last = i == len(pages) - 1
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=page,
+                    parse_mode=ParseMode.HTML,
+                    disable_web_page_preview=True,
+                    reply_markup=_visa_keyboard(visa) if last else None,
+                )
+        else:
+            await query.edit_message_text(
+                visa["details"],
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True,
+                reply_markup=_visa_keyboard(visa),
+            )
 
 
 def register(app: Application) -> None:

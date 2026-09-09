@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+from .tr_pages import TR_PAGES as _TR_PAGES
+
 # Первое сообщение при /start (дословно как в оригинале).
 WELCOME = (
     "Привет! 👋\n"
@@ -550,11 +552,8 @@ VISAS: list[dict[str, str]] = [
     {
         "id": "tr",
         "name": "🏖 Туристическая виза (TR)",
-        "details": (
-            "🏖 <b>Туристическая виза (TR)</b>\n\n"
-            "💬 Подробности — скоро добавим.\n"
-            "За помощью с оформлением пиши по кнопке 👇"
-        ),
+        "details": _TR_PAGES[0],
+        "pages": _TR_PAGES,
     },
     {
         "id": "dtv",
