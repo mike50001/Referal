@@ -7,6 +7,7 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
 from ..content import DOCS_FULL, SECTIONS
+from ._util import go_home
 
 PREFIX = "docs:"
 
@@ -48,7 +49,7 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             reply_markup=entry_button(),
         )
     elif data == "menu":
-        await query.edit_message_text(_MENU_TEXT, parse_mode=ParseMode.HTML)
+        await go_home(update, context)
 
 
 def register(app: Application) -> None:

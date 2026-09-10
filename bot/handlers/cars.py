@@ -14,6 +14,7 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
 from ..content import CARS, car_booking_url, car_photo_paths, get_car
+from ._util import go_home
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             _LIST_TITLE, parse_mode=ParseMode.HTML, reply_markup=_list_keyboard()
         )
     elif data == "menu":
-        await query.edit_message_text(_MENU_TEXT, parse_mode=ParseMode.HTML)
+        await go_home(update, context)
     elif data.startswith("c:"):
         car = get_car(data[2:])
         if car is None:

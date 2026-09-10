@@ -7,6 +7,7 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
 from ..content import GREEN_CORRIDOR, SECTIONS, VISAS, get_visa, tg_link
+from ._util import go_home
 
 PREFIX = "visa:"
 
@@ -80,7 +81,7 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             reply_markup=list_keyboard(),
         )
     elif data == "menu":
-        await query.edit_message_text(_MENU_TEXT, parse_mode=ParseMode.HTML)
+        await go_home(update, context)
     elif data == "green":
         await query.edit_message_text(
             GREEN_CORRIDOR,
