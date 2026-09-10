@@ -14,7 +14,7 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
 from ..content import CARS, car_booking_url, car_photo_paths, get_car
-from ._util import go_home
+from ._util import go_home, home_button
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +27,12 @@ _MENU_TEXT = "🏠 Главное меню — выбери раздел на к
 def entry_button() -> InlineKeyboardMarkup:
     """Кнопка под текстом раздела «Аренда авто»."""
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(
-            "👉 🚗 СМОТРЕТЬ ДОСТУПНЫЕ АВТО", callback_data=f"{PREFIX}list"
-        )]]
+        [
+            [InlineKeyboardButton(
+                "👉 🚗 СМОТРЕТЬ ДОСТУПНЫЕ АВТО", callback_data=f"{PREFIX}list"
+            )],
+            [home_button()],
+        ]
     )
 
 

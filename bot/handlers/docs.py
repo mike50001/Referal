@@ -7,7 +7,7 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
 from ..content import DOCS_FULL, SECTIONS
-from ._util import go_home
+from ._util import go_home, home_button
 
 PREFIX = "docs:"
 
@@ -17,7 +17,10 @@ _MENU_TEXT = "🏠 Главное меню — выбери раздел на к
 def entry_button() -> InlineKeyboardMarkup:
     """Кнопка «Подробнее» под кратким текстом раздела."""
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("📖 Подробнее", callback_data=f"{PREFIX}full")]]
+        [
+            [InlineKeyboardButton("📖 Подробнее", callback_data=f"{PREFIX}full")],
+            [home_button()],
+        ]
     )
 
 

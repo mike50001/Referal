@@ -22,6 +22,7 @@ from ..content import (
 from ..keyboards import main_menu
 
 logger = logging.getLogger(__name__)
+from ._util import home_button
 from .apps import list_keyboard as apps_list_keyboard
 from .cars import entry_button as cars_entry_button
 from .docs import entry_button as docs_entry_button
@@ -33,12 +34,13 @@ _FALLBACK = (
 )
 
 
-def _inline_for(key: str) -> InlineKeyboardMarkup | None:
-    """Собрать inline-клавиатуру со ссылками для раздела, если заданы."""
-    buttons = SECTION_BUTTONS.get(key)
-    if not buttons:
-        return None
-    rows = [[InlineKeyboardButton(text, url=url)] for text, url in buttons]
+def _inline_for(key: str) -> InlineKeyboardMarkup:
+    """Inline-клавиатура раздела: ссылки (если есть) + кнопка «В меню»."""
+    rows = [
+        [InlineKeyboardButton(text, url=url)]
+        for text, url in (SECTION_BUTTONS.get(key) or [])
+    ]
+    rows.append([home_button()])
     return InlineKeyboardMarkup(rows)
 
 
@@ -111,23 +113,14 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     # Фото раздела (если заданы) — перед текстом.
     await _send_section_photos(update, context, key)
 
-    inline = _inline_for(key)
-    # Reply-клавиатура постоянная (is_persistent) и остаётся на экране,
-    # поэтому для разделов со ссылкой прикрепляем inline-кнопки.
-    if inline is not None:
-        await update.message.reply_text(
-            body,
-            parse_mode=ParseMode.HTML,
-            disable_web_page_preview=True,
-            reply_markup=inline,
-        )
-    else:
-        await update.message.reply_text(
-            body,
-            parse_mode=ParseMode.HTML,
-            disable_web_page_preview=True,
-            reply_markup=main_menu(),
-        )
+    # Inline-кнопки раздела (ссылки + «В меню»). Reply-клавиатура постоянная
+    # и остаётся на экране.
+    await update.message.reply_text(
+        body,
+        parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True,
+        reply_markup=_inline_for(key),
+    )
 
 
 def register(app: Application) -> None:

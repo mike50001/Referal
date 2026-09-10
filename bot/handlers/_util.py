@@ -1,17 +1,23 @@
-"""Общие помощники для обработчиков подменю."""
+"""Общие помощники для обработчиков: кнопка и возврат в главное меню."""
 
 from __future__ import annotations
 
-from telegram import Update
-from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton, Update
+from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 
 from ..content import PROMPT
 from ..keyboards import main_menu
 
+HOME_CB = "home"
+
+
+def home_button() -> InlineKeyboardButton:
+    """Кнопка «В меню» для любого раздела."""
+    return InlineKeyboardButton("🏠 В меню", callback_data=HOME_CB)
+
 
 async def go_home(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Вернуть пользователя в главное меню: убрать inline-кнопки текущего
-    сообщения и прислать меню с постоянной клавиатурой."""
+    """Убрать inline-кнопки текущего сообщения и прислать главное меню."""
     query = update.callback_query
     try:
         await query.edit_message_reply_markup(reply_markup=None)
@@ -20,3 +26,12 @@ async def go_home(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await context.bot.send_message(
         chat_id=query.message.chat_id, text=PROMPT, reply_markup=main_menu()
     )
+
+
+async def on_home(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.callback_query.answer()
+    await go_home(update, context)
+
+
+def register(app: Application) -> None:
+    app.add_handler(CallbackQueryHandler(on_home, pattern=f"^{HOME_CB}$"))
