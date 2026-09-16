@@ -25,8 +25,8 @@ async def start_mode(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     context.user_data[_FLAG] = True
     await update.message.reply_text(
         "📸 Режим получения кодов включён.\n\n"
-        "Пришли фото (можно альбомом) — верну код (file_id) каждого. "
-        "Скопируй коды и пришли их мне/разработчику.\n\n"
+        "Пришли фото (можно альбомом) или документ/PDF — верну код "
+        "(file_id) каждого. Скопируй коды и пришли их мне/разработчику.\n\n"
         "Выйти — /stopid"
     )
 
@@ -46,7 +46,17 @@ async def on_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+async def on_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not context.user_data.get(_FLAG):
+        return
+    file_id = update.message.document.file_id
+    await update.message.reply_text(
+        f"<code>{file_id}</code>", parse_mode=ParseMode.HTML
+    )
+
+
 def register(app: Application) -> None:
     app.add_handler(CommandHandler("photoid", start_mode))
     app.add_handler(CommandHandler("stopid", stop_mode))
     app.add_handler(MessageHandler(filters.PHOTO, on_photo))
+    app.add_handler(MessageHandler(filters.Document.ALL, on_document))
