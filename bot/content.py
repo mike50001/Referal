@@ -31,7 +31,7 @@ START_BANNER = (
 
 # PDF-гайд, который бот отправляет после /start.
 # GUIDE_FILE_ID — код документа (file_id из /photoid). Пусто — гайд не шлётся.
-GUIDE_FILE_ID = ""
+GUIDE_FILE_ID = "BQACAgIAAxkBAAIGBGqqeNHa-e0TIf6Z9USF08JxUsZQAAJBmgAC2gj5SxwnZeIOMG1wPQQ"
 GUIDE_CAPTION = (
     "🇹🇭 <b>ГАЙД ПО ПЕРЕЕЗДУ В ТАИЛАНД</b>\n\n"
     "Собрала для вас подробный гайд со всей основной информацией, которую "
