@@ -16,8 +16,8 @@ from telegram.ext import (
 from .. import stats
 from ..content import SECTIONS, find_key_by_label
 
-# admin_id прокидывается из main при регистрации.
-_admin_id = 0
+# Набор admin_id прокидывается из main при регистрации.
+_admin_ids: frozenset[int] = frozenset()
 
 
 def _section_label(event: str) -> str:
@@ -58,7 +58,7 @@ async def track(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
-    if _admin_id and (not user or user.id != _admin_id):
+    if _admin_ids and (not user or user.id not in _admin_ids):
         return  # чужим не отвечаем
     if not stats.enabled():
         await update.message.reply_text(
@@ -91,13 +91,13 @@ async def myid_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_html(
         f"Ваш Telegram ID: <code>{user.id}</code>\n\n"
         "Впишите его в переменную <b>ADMIN_ID</b> на Railway, чтобы "
-        "команда /stats была доступна только вам."
+        "команда /stats была доступна вам. Несколько ID — через запятую."
     )
 
 
-def register(app: Application, admin_id: int = 0) -> None:
-    global _admin_id
-    _admin_id = admin_id
+def register(app: Application, admin_ids: frozenset[int] = frozenset()) -> None:
+    global _admin_ids
+    _admin_ids = admin_ids
     # Трекинг — в группе -1, раньше всех остальных обработчиков.
     app.add_handler(TypeHandler(Update, track), group=-1)
     app.add_handler(CommandHandler("stats", stats_command))

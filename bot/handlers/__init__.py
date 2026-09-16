@@ -15,9 +15,9 @@ from . import (
 )
 
 
-def register_all(app: Application, admin_id: int = 0) -> None:
+def register_all(app: Application, admin_ids: frozenset[int] = frozenset()) -> None:
     """Зарегистрировать все обработчики."""
-    analytics.register(app, admin_id)  # трекинг (группа -1), /stats, /myid
+    analytics.register(app, admin_ids)  # трекинг (группа -1), /stats, /myid
     _util.register(app)     # общий callback «🏠 В меню»
     start.register(app)
     cars.register(app)      # callback-кнопки списка авто

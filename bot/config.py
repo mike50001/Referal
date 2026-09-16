@@ -17,7 +17,7 @@ class Config:
     bot_token: str
     log_level: str = "INFO"
     database_url: str = ""
-    admin_id: int = 0
+    admin_ids: frozenset[int] = frozenset()
 
     @classmethod
     def from_env(cls) -> "Config":
@@ -27,15 +27,17 @@ class Config:
                 "Не задан BOT_TOKEN. Скопируйте .env.example в .env и укажите "
                 "токен, полученный у @BotFather."
             )
-        admin_raw = os.getenv("ADMIN_ID", "").strip()
-        try:
-            admin_id = int(admin_raw) if admin_raw else 0
-        except ValueError:
-            admin_id = 0
+        # ADMIN_ID может содержать несколько ID через запятую/пробел/;.
+        admin_ids = set()
+        raw = os.getenv("ADMIN_ID", "").replace(";", ",").replace(" ", ",")
+        for part in raw.split(","):
+            part = part.strip()
+            if part.isdigit():
+                admin_ids.add(int(part))
         return cls(
             bot_token=token,
             log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper(),
             # Railway Postgres обычно даёт DATABASE_URL.
             database_url=os.getenv("DATABASE_URL", "").strip(),
-            admin_id=admin_id,
+            admin_ids=frozenset(admin_ids),
         )

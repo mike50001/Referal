@@ -68,7 +68,7 @@ def build_application(config: Config) -> Application:
         .post_shutdown(_post_shutdown)
         .build()
     )
-    register_all(app, config.admin_id)
+    register_all(app, config.admin_ids)
     app.add_error_handler(_on_error)
     return app
 
