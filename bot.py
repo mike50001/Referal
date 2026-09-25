@@ -1,10 +1,11 @@
 """Telegram-бот «подруга» на Claude. Запускается на Railway как worker (long polling)."""
 
-import asyncio
 import logging
 import os
+import random
 import sqlite3
 from contextlib import closing
+from urllib.parse import quote
 
 import anthropic
 import httpx
@@ -52,9 +53,9 @@ PERSONA = os.getenv("BOT_PERSONA", DEFAULT_PERSONA) + """
 Ты умеешь присылать свои фото инструментом send_photo — когда тебя просят фото/селфи
 или когда это уместно по ходу разговора (не слишком часто). Описывай сцену по-английски."""
 
-# ---------- генерация фото (Replicate, FLUX) ----------
-REPLICATE_TOKEN = os.getenv("REPLICATE_API_TOKEN", "")
-IMAGE_MODEL = os.getenv("IMAGE_MODEL", "black-forest-labs/flux-schnell")
+# ---------- генерация фото (Pollinations.ai — бесплатно, без ключа) ----------
+IMAGE_MODEL = os.getenv("IMAGE_MODEL", "flux")
+PHOTOS_ENABLED = os.getenv("PHOTOS_ENABLED", "1") != "0"
 # Постоянная внешность — чтобы на всех фото была «одна и та же» девушка
 APPEARANCE = os.getenv(
     "BOT_APPEARANCE",
@@ -82,38 +83,29 @@ PHOTO_TOOL = {
 }
 
 
-async def generate_image(scene: str) -> str | None:
-    """Возвращает URL сгенерированной картинки или None."""
-    if not REPLICATE_TOKEN:
-        return None
+async def generate_image(scene: str) -> bytes | None:
+    """Генерирует фото через Pollinations.ai и возвращает JPEG-байты или None."""
     prompt = f"photo of {APPEARANCE}, {scene}, realistic smartphone photo, natural light"
-    async with httpx.AsyncClient(timeout=120) as http:
-        r = await http.post(
-            f"https://api.replicate.com/v1/models/{IMAGE_MODEL}/predictions",
-            headers={
-                "Authorization": f"Bearer {REPLICATE_TOKEN}",
-                "Prefer": "wait",
-            },
-            json={"input": {"prompt": prompt, "aspect_ratio": "3:4", "output_format": "jpg"}},
-        )
-        if r.status_code >= 400:
-            log.error("Replicate error %s: %s", r.status_code, r.text[:500])
-            return None
-        data = r.json()
-        # Если не успело за "Prefer: wait" — дожидаемся
-        while data.get("status") in ("starting", "processing"):
-            await asyncio.sleep(1.5)
-            data = (
-                await http.get(
-                    data["urls"]["get"],
-                    headers={"Authorization": f"Bearer {REPLICATE_TOKEN}"},
-                )
-            ).json()
-    if data.get("status") != "succeeded":
-        log.error("Replicate prediction failed: %s", data.get("error"))
+    url = "https://image.pollinations.ai/prompt/" + quote(prompt, safe="")
+    params = {
+        "width": 768,
+        "height": 1024,
+        "model": IMAGE_MODEL,
+        "seed": random.randint(1, 10**9),
+        "nologo": "true",
+        "safe": "true",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=120, follow_redirects=True) as http:
+            r = await http.get(url, params=params)
+    except httpx.HTTPError:
+        log.exception("Pollinations request failed")
         return None
-    out = data.get("output")
-    return out[0] if isinstance(out, list) else out
+    if r.status_code != 200 or not r.headers.get("content-type", "").startswith("image/"):
+        log.error("Pollinations error %s: %s", r.status_code, r.text[:300])
+        return None
+    return r.content
+
 
 client = anthropic.AsyncAnthropic()
 
@@ -177,7 +169,7 @@ async def ask_claude(history: list[dict], user_name: str, send_photo) -> str:
                 max_tokens=16000,
                 system=system,
                 messages=messages,
-                **({"tools": [PHOTO_TOOL]} if REPLICATE_TOKEN else {}),
+                **({"tools": [PHOTO_TOOL]} if PHOTOS_ENABLED else {}),
                 thinking={"type": "adaptive"},
                 output_config={"effort": EFFORT},
                 # Если запрос отклонён классификатором — API сам повторит его на запасной модели
@@ -208,9 +200,9 @@ async def ask_claude(history: list[dict], user_name: str, send_photo) -> str:
                 continue
             scene = block.input.get("scene", "")
             caption = block.input.get("caption", "")
-            url = await generate_image(scene)
-            if url:
-                await send_photo(url, caption)
+            image = await generate_image(scene)
+            if image:
+                await send_photo(image, caption)
                 sent_notes.append(f"[отправила фото: {scene}] {caption}")
                 content, is_error = "Фото отправлено.", False
             else:
@@ -267,9 +259,9 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         else:
             merged.append(dict(m))
 
-    async def send_photo(url: str, caption: str) -> None:
+    async def send_photo(image: bytes, caption: str) -> None:
         await context.bot.send_chat_action(chat_id, ChatAction.UPLOAD_PHOTO)
-        await context.bot.send_photo(chat_id, photo=url, caption=caption[:1024] or None)
+        await context.bot.send_photo(chat_id, photo=image, caption=caption[:1024] or None)
 
     reply = await ask_claude(merged, user_name, send_photo)
     save_message(chat_id, "assistant", reply)
@@ -286,14 +278,14 @@ async def photo_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """/photo [описание] — попросить фото напрямую."""
     if not allowed(update):
         return
-    if not REPLICATE_TOKEN:
-        await update.message.reply_text("Фото пока недоступны 🙈 (не задан REPLICATE_API_TOKEN)")
+    if not PHOTOS_ENABLED:
+        await update.message.reply_text("Фото сейчас выключены 🙈")
         return
     scene = " ".join(context.args) if context.args else "casual selfie at home, smiling at the camera"
     await context.bot.send_chat_action(update.effective_chat.id, ChatAction.UPLOAD_PHOTO)
-    url = await generate_image(scene)
-    if url:
-        await update.message.reply_photo(url, caption="Держи 😊")
+    image = await generate_image(scene)
+    if image:
+        await update.message.reply_photo(image, caption="Держи 😊")
     else:
         await update.message.reply_text("Не получилось сфоткаться 😔 Попробуй ещё раз")
 
