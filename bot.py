@@ -1,5 +1,6 @@
-"""Telegram-бот «подруга» на Claude. Запускается на Railway как worker (long polling)."""
+"""Telegram-бот «подруга» на OpenAI. Запускается на Railway как worker (long polling)."""
 
+import json
 import logging
 import os
 import random
@@ -7,8 +8,8 @@ import sqlite3
 from contextlib import closing
 from urllib.parse import quote
 
-import anthropic
 import httpx
+import openai
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import (
@@ -26,8 +27,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("girlfriend-bot")
 
 TELEGRAM_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
-MODEL = os.getenv("CLAUDE_MODEL", "claude-opus-5")
-EFFORT = os.getenv("CLAUDE_EFFORT", "low")  # low | medium | high | xhigh | max
+MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
 BOT_NAME = os.getenv("BOT_NAME", "Аня")
 HISTORY_LIMIT = int(os.getenv("HISTORY_LIMIT", "40"))  # сообщений в контексте
 DATA_DIR = os.getenv("DATA_DIR", ".")  # на Railway укажите путь к Volume, напр. /data
@@ -92,21 +92,24 @@ APPEARANCE = os.getenv(
 )
 
 PHOTO_TOOL = {
-    "name": "send_photo",
-    "description": "Отправить собеседнику своё фото (селфи). Внешность добавляется автоматически — "
-    "опиши только сцену, позу, одежду, место и настроение по-английски.",
-    "strict": True,
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "scene": {
-                "type": "string",
-                "description": "English description of the scene, e.g. 'mirror selfie in a cozy cafe, holding a latte'",
+    "type": "function",
+    "function": {
+        "name": "send_photo",
+        "description": "Отправить собеседнику своё фото (селфи). Внешность добавляется автоматически — "
+        "опиши только сцену, позу, одежду, место и настроение по-английски.",
+        "strict": True,
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "scene": {
+                    "type": "string",
+                    "description": "English description of the scene, e.g. 'mirror selfie in a cozy cafe, holding a latte'",
+                },
+                "caption": {"type": "string", "description": "Короткая подпись к фото"},
             },
-            "caption": {"type": "string", "description": "Короткая подпись к фото"},
+            "required": ["scene", "caption"],
+            "additionalProperties": False,
         },
-        "required": ["scene", "caption"],
-        "additionalProperties": False,
     },
 }
 
@@ -135,7 +138,7 @@ async def generate_image(scene: str) -> bytes | None:
     return r.content
 
 
-client = anthropic.AsyncAnthropic()
+client = openai.AsyncOpenAI()  # ключ берётся из OPENAI_API_KEY
 
 
 # ---------- память (SQLite) ----------
@@ -161,11 +164,7 @@ def load_history(chat_id: int) -> list[dict]:
             "SELECT role, content FROM messages WHERE chat_id = ? ORDER BY id DESC LIMIT ?",
             (chat_id, HISTORY_LIMIT),
         ).fetchall()
-    history = [{"role": r, "content": c} for r, c in reversed(rows)]
-    # История для API должна начинаться с сообщения пользователя
-    while history and history[0]["role"] != "user":
-        history.pop(0)
-    return history
+    return [{"role": r, "content": c} for r, c in reversed(rows)]
 
 
 def save_message(chat_id: int, role: str, content: str) -> None:
@@ -181,64 +180,53 @@ def clear_history(chat_id: int) -> None:
         conn.execute("DELETE FROM messages WHERE chat_id = ?", (chat_id,))
 
 
-# ---------- Claude ----------
+# ---------- OpenAI ----------
 
-async def ask_claude(history: list[dict], user_name: str, send_photo) -> str:
-    """Диалог с Claude; send_photo(url, caption) отправляет фото в чат.
+async def ask_ai(history: list[dict], user_name: str, send_photo) -> str:
+    """Диалог с OpenAI; send_photo(image, caption) отправляет фото в чат.
     Возвращает текст ответа (с пометками об отправленных фото — для памяти)."""
     system = PERSONA + (f"\n\nСобеседника зовут {user_name}." if user_name else "")
-    messages = list(history)
+    messages: list[dict] = [{"role": "system", "content": system}, *history]
     sent_notes: list[str] = []
 
     for _ in range(4):  # максимум несколько вызовов инструмента за ответ
         try:
-            response = await client.beta.messages.create(
+            response = await client.chat.completions.create(
                 model=MODEL,
-                max_tokens=16000,
-                system=system,
                 messages=messages,
                 **({"tools": [PHOTO_TOOL]} if PHOTOS_ENABLED else {}),
-                thinking={"type": "adaptive"},
-                output_config={"effort": EFFORT},
-                # Если запрос отклонён классификатором — API сам повторит его на запасной модели
-                betas=["server-side-fallback-2026-07-01"],
-                extra_body={"fallbacks": "default"},
             )
-        except anthropic.RateLimitError:
-            log.warning("Rate limit")
+        except openai.RateLimitError:
+            log.warning("Rate limit / нет денег на балансе OpenAI")
             return "Ой, я чуть запыхалась 😅 Напиши мне через минутку?"
-        except anthropic.APIStatusError as e:
-            log.error("Claude API error %s: %s", e.status_code, e.message)
+        except openai.APIStatusError as e:
+            log.error("OpenAI API error %s: %s", e.status_code, e.message)
             return "Что-то у меня связь барахлит… попробуй ещё раз чуть позже 🙈"
-        except anthropic.APIConnectionError:
+        except openai.APIConnectionError:
             log.exception("Connection error")
             return "Кажется, интернет пропал 😔 Попробуй ещё раз?"
 
-        if response.stop_reason == "refusal":
-            return "Давай лучше поговорим о чём-нибудь другом 🙂"
-
-        if response.stop_reason != "tool_use":
-            text = "".join(b.text for b in response.content if b.type == "text").strip()
+        msg = response.choices[0].message
+        if not msg.tool_calls:
+            text = (msg.content or msg.refusal or "").strip()
             return "\n".join(sent_notes + [text]).strip() or "…"
 
-        messages.append({"role": "assistant", "content": response.content})
-        results = []
-        for block in response.content:
-            if block.type != "tool_use":
-                continue
-            scene = block.input.get("scene", "")
-            caption = block.input.get("caption", "")
-            image = await generate_image(scene)
+        messages.append(msg.model_dump(exclude_none=True))
+        for call in msg.tool_calls:
+            try:
+                args = json.loads(call.function.arguments)
+            except (json.JSONDecodeError, AttributeError):
+                args = {}
+            scene = args.get("scene", "")
+            caption = args.get("caption", "")
+            image = await generate_image(scene) if scene else None
             if image:
                 await send_photo(image, caption)
                 sent_notes.append(f"[отправила фото: {scene}] {caption}")
-                content, is_error = "Фото отправлено.", False
+                result = "Фото отправлено."
             else:
-                content, is_error = "Не получилось сгенерировать фото, извинись и продолжи разговор.", True
-            results.append(
-                {"type": "tool_result", "tool_use_id": block.id, "content": content, "is_error": is_error}
-            )
-        messages.append({"role": "user", "content": results})
+                result = "Ошибка: не получилось сгенерировать фото, извинись и продолжи разговор."
+            messages.append({"role": "tool", "tool_call_id": call.id, "content": result})
 
     return "\n".join(sent_notes).strip() or "…"
 
@@ -292,7 +280,7 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await context.bot.send_chat_action(chat_id, ChatAction.UPLOAD_PHOTO)
         await context.bot.send_photo(chat_id, photo=image, caption=caption[:1024] or None)
 
-    reply = await ask_claude(merged, user_name, send_photo)
+    reply = await ask_ai(merged, user_name, send_photo)
     save_message(chat_id, "assistant", reply)
 
     # Пометки «[отправила фото…]» нужны только для памяти — пользователю не показываем
@@ -341,7 +329,7 @@ def main() -> None:
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
     app.add_handler(MessageHandler(~filters.TEXT & ~filters.COMMAND, on_other))
     app.add_error_handler(on_error)
-    log.info("Bot started (model=%s, effort=%s)", MODEL, EFFORT)
+    log.info("Bot started (model=%s)", MODEL)
     app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
 
