@@ -26,7 +26,13 @@ logging.basicConfig(
 logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("girlfriend-bot")
 
-TELEGRAM_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
+_missing = [v for v in ("TELEGRAM_BOT_TOKEN", "OPENAI_API_KEY") if not os.getenv(v, "").strip()]
+if _missing:
+    raise SystemExit(
+        "Не заданы переменные окружения: " + ", ".join(_missing)
+        + ". Добавьте их в Railway → Variables и нажмите Deploy."
+    )
+TELEGRAM_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"].strip()
 MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
 BOT_NAME = os.getenv("BOT_NAME", "Аня")
 HISTORY_LIMIT = int(os.getenv("HISTORY_LIMIT", "40"))  # сообщений в контексте
@@ -138,7 +144,7 @@ async def generate_image(scene: str) -> bytes | None:
     return r.content
 
 
-client = openai.AsyncOpenAI()  # ключ берётся из OPENAI_API_KEY
+client = openai.AsyncOpenAI(api_key=os.environ["OPENAI_API_KEY"].strip())
 
 
 # ---------- память (SQLite) ----------
