@@ -251,14 +251,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     name = update.effective_user.first_name if update.effective_user else ""
     await update.message.reply_text(
-        (
-            f"Ну привет{', ' + name if name else ''}. Я {BOT_NAME}. Давай, рассказывай, чем сегодня "
-            "оправдаешься 😏\n\n"
-            if BOT_STYLE == "hard"
-            else f"Привет{', ' + name if name else ''}! Я {BOT_NAME} 💛 Как у тебя дела?\n\n"
-        )
-        + "/photo — попросить моё фото (можно с описанием)\n"
-        "/reset — начать общение заново"
+        f"Ну привет{', ' + name if name else ''}. Я {BOT_NAME}. Давай, рассказывай, чем сегодня "
+        "оправдаешься 😏"
+        if BOT_STYLE == "hard"
+        else f"Привет{', ' + name if name else ''}! Я {BOT_NAME} 💛 Как у тебя дела?"
     )
 
 
