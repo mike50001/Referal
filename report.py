@@ -41,10 +41,23 @@ def main() -> None:
     print("=" * 60)
 
     # --- сделки за период ---
-    # Binance при startTime отдаёт самые СТАРЫЕ сделки окна и режет свежие.
-    # Поэтому берём последние 1000 сделок и фильтруем по времени сами.
-    raw = client.futures_account_trades(symbol=cfg.symbol, limit=1000)
-    trades = [t for t in raw if int(t["time"]) >= start_ms]
+    # Binance отдаёт историю сделок окнами не длиннее 7 дней. Чтобы честно
+    # покрыть весь период, тянем недельными окнами и склеиваем (с дедупом по id).
+    now_ms = int(time.time() * 1000)
+    week = 7 * 86400 * 1000
+    raw, seen = [], set()
+    s = start_ms
+    while s < now_ms:
+        e = min(s + week, now_ms)
+        batch = client.futures_account_trades(
+            symbol=cfg.symbol, startTime=s, endTime=e, limit=1000
+        )
+        for t in batch:
+            if t["id"] not in seen:
+                seen.add(t["id"])
+                raw.append(t)
+        s = e
+    trades = sorted(raw, key=lambda t: int(t["time"]))
 
     closes = [t for t in trades if float(t["realizedPnl"]) != 0.0]
     gross = sum(float(t["realizedPnl"]) for t in trades)
