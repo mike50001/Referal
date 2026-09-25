@@ -78,6 +78,10 @@ class Config:
     trailing_stop: bool       # использовать трейлинг вместо фикс. тейка
     trailing_callback: float  # откат трейлинга в % (0.1..5)
 
+    # Telegram-уведомления
+    telegram_bot_token: str
+    telegram_chat_id: str
+
     # Прочее
     poll_interval_sec: int
     dry_run: bool
@@ -120,6 +124,8 @@ class Config:
             trend_ema=_get_int("TREND_EMA", 200),
             trailing_stop=_get_bool("TRAILING_STOP", False),
             trailing_callback=_get_float("TRAILING_CALLBACK", 1.0),
+            telegram_bot_token=os.getenv("TELEGRAM_BOT_TOKEN", "").strip(),
+            telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID", "").strip(),
             poll_interval_sec=_get_int("POLL_INTERVAL_SEC", 30),
             dry_run=_get_bool("DRY_RUN", False),
             log_level=os.getenv("LOG_LEVEL", "INFO").upper(),

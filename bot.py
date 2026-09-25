@@ -22,6 +22,7 @@ from binance.exceptions import BinanceAPIException
 from config import Config
 from exchange import BinanceFutures
 from indicators import atr as atr_indicator
+from notifier import Notifier
 from risk import RiskManager
 from strategy import Decision, Strategy, Signal, build_strategy
 
@@ -45,6 +46,9 @@ class TradingBot:
         self._peak_balance: float | None = None  # для контроля просадки
         self._trade_day = None                    # дата (UTC) для лимита сделок/день
         self._trades_today = 0
+        self.notify = Notifier(cfg.telegram_bot_token, cfg.telegram_chat_id)
+        self._pos_state: dict | None = None       # для детекта открытия/закрытия
+        self._pos_open_ms: int | None = None
 
     def start(self) -> None:
         mode = "TESTNET" if self.cfg.use_testnet else "MAINNET (РЕАЛЬНЫЕ ДЕНЬГИ)"
@@ -58,6 +62,14 @@ class TradingBot:
                       self.cfg.trend_interval, self.cfg.trend_ema,
                       self.cfg.max_drawdown_pct * 100)
         self.log.info("=" * 64)
+
+        if self.notify.enabled:
+            self.log.info("Telegram-уведомления включены.")
+            self.notify.send(
+                f"🤖 Бот запущен | {mode}\n"
+                f"{self.strategy.name} {self.cfg.symbol} {self.cfg.interval} "
+                f"плечо x{self.cfg.leverage}"
+            )
 
         if not self.cfg.dry_run:
             self.ex.setup_account()
@@ -117,6 +129,7 @@ class TradingBot:
             return
 
         position = self.ex.get_position()
+        self._notify_position_change(position)
         pos_side = position["side"] if position else None
 
         decision = self.strategy.evaluate(df, pos_side)
@@ -131,6 +144,40 @@ class TradingBot:
             self._handle_close(position)
         elif decision.signal in (Signal.LONG, Signal.SHORT):
             self._handle_open(decision, df)
+
+    def _notify_position_change(self, position: dict | None) -> None:
+        """Отправляет в Telegram уведомления об открытии/закрытии позиции.
+        Закрытие определяется по исчезновению позиции между тиками."""
+        prev = self._pos_state
+        if prev is None and position is not None:
+            self._pos_open_ms = int(time.time() * 1000)
+            self.notify.send(
+                f"🟢 Открыта {position['side']} {self.cfg.symbol}\n"
+                f"вход ~{position['entry']:.2f}, объём {position['amt']}"
+            )
+        elif prev is not None and position is None:
+            pnl = self._closed_pnl(self._pos_open_ms)
+            pnl_txt = f"{pnl:+.2f} USDT" if pnl is not None else "см. биржу"
+            emoji = "✅" if (pnl or 0) > 0 else "🔴"
+            bal = self.ex.get_balance_usdt()
+            self.notify.send(
+                f"{emoji} Закрыта {prev['side']} {self.cfg.symbol}\n"
+                f"P&L: {pnl_txt} | баланс: {bal:.2f} USDT"
+            )
+            self._pos_open_ms = None
+        self._pos_state = position
+
+    def _closed_pnl(self, since_ms: int | None) -> float | None:
+        """Реализованный P&L (за вычетом комиссий) по сделкам после since_ms."""
+        try:
+            trades = self.ex.client.futures_account_trades(
+                symbol=self.cfg.symbol, limit=20)
+        except Exception:  # noqa: BLE001
+            return None
+        floor = since_ms or 0
+        vals = [float(t["realizedPnl"]) - float(t["commission"])
+                for t in trades if int(t["time"]) >= floor and float(t["realizedPnl"]) != 0]
+        return sum(vals) if vals else None
 
     def _handle_close(self, position: dict | None) -> None:
         if position is None:
