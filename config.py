@@ -50,6 +50,7 @@ class Config:
     take_profit_roi: float   # тейк по доходности на маржу (с учётом плеча); 0 = выкл
     max_position_usdt: float
     max_drawdown_pct: float  # стоп бота при просадке от пика (0 = выкл)
+    max_trades_per_day: int  # лимит открытий сделок в день (0 = без лимита)
 
     # Индикаторы (EMA/RSI стратегия)
     ema_fast: int
@@ -102,6 +103,7 @@ class Config:
             take_profit_roi=_get_float("TAKE_PROFIT_ROI", 0.0),
             max_position_usdt=_get_float("MAX_POSITION_USDT", 100.0),
             max_drawdown_pct=_get_float("MAX_DRAWDOWN_PCT", 0.25),
+            max_trades_per_day=_get_int("MAX_TRADES_PER_DAY", 0),
             ema_fast=_get_int("EMA_FAST", 9),
             ema_slow=_get_int("EMA_SLOW", 21),
             rsi_period=_get_int("RSI_PERIOD", 14),

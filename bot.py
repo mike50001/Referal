@@ -43,6 +43,8 @@ class TradingBot:
         self.risk = RiskManager(cfg)
         self._running = True
         self._peak_balance: float | None = None  # для контроля просадки
+        self._trade_day = None                    # дата (UTC) для лимита сделок/день
+        self._trades_today = 0
 
     def start(self) -> None:
         mode = "TESTNET" if self.cfg.use_testnet else "MAINNET (РЕАЛЬНЫЕ ДЕНЬГИ)"
@@ -142,6 +144,18 @@ class TradingBot:
     def _handle_open(self, decision: Decision, df) -> None:
         side = decision.signal.value  # 'LONG' / 'SHORT'
 
+        # Лимит сделок в день (UTC). 0 = без лимита.
+        if self.cfg.max_trades_per_day > 0:
+            import datetime
+            today = datetime.datetime.now(datetime.timezone.utc).date()
+            if today != self._trade_day:
+                self._trade_day = today
+                self._trades_today = 0
+            if self._trades_today >= self.cfg.max_trades_per_day:
+                self.log.info("Пропуск %s: лимит сделок на день (%d) достигнут",
+                              side, self.cfg.max_trades_per_day)
+                return
+
         # Трендовый фильтр старшего ТФ: не входим против тренда.
         if self.cfg.trend_filter:
             try:
@@ -184,9 +198,11 @@ class TradingBot:
         if self.cfg.dry_run:
             mode = "трейлинг" if self.cfg.trailing_stop else "SL/TP"
             self.log.info("[DRY_RUN] открыл бы %s qty=%s + %s", side, qty, mode)
+            self._trades_today += 1
             return
 
         self.ex.open_market(side, qty)
+        self._trades_today += 1
         if self.cfg.trailing_stop:
             # Жёсткий стоп-лосс (защита) + трейлинг вместо фикс. тейка.
             self.ex.place_stop_loss(side, plan.stop_loss)
