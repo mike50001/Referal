@@ -324,6 +324,15 @@ async def on_other(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("Я пока умею читать только текст 🙈 Напиши словами?")
 
 
+async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    log.error("Ошибка при обработке сообщения", exc_info=context.error)
+    if isinstance(update, Update) and update.effective_message:
+        try:
+            await update.effective_message.reply_text("Что-то сломалось 🙈 Напиши ещё раз")
+        except Exception:
+            pass
+
+
 def main() -> None:
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
@@ -331,6 +340,7 @@ def main() -> None:
     app.add_handler(CommandHandler("photo", photo_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
     app.add_handler(MessageHandler(~filters.TEXT & ~filters.COMMAND, on_other))
+    app.add_error_handler(on_error)
     log.info("Bot started (model=%s, effort=%s)", MODEL, EFFORT)
     app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
