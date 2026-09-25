@@ -234,9 +234,10 @@ async def ask_ai(history: list[dict], user_name: str, send_photo) -> str:
 # ---------- Telegram ----------
 
 def allowed(update: Update) -> bool:
-    return not ALLOWED_USERS or (
-        update.effective_user is not None and update.effective_user.id in ALLOWED_USERS
-    )
+    user_id = update.effective_user.id if update.effective_user else None
+    ok = not ALLOWED_USERS or user_id in ALLOWED_USERS
+    log.info("Сообщение от user_id=%s%s", user_id, "" if ok else " — не в ALLOWED_USERS, игнорирую")
+    return ok
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -321,15 +322,25 @@ async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
             pass
 
 
+async def post_init(app: Application) -> None:
+    me = await app.bot.get_me()
+    log.info("Telegram-бот: @%s — пишите именно ему", me.username)
+
+
 def main() -> None:
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    app = Application.builder().token(TELEGRAM_TOKEN).post_init(post_init).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("reset", reset))
     app.add_handler(CommandHandler("photo", photo_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
     app.add_handler(MessageHandler(~filters.TEXT & ~filters.COMMAND, on_other))
     app.add_error_handler(on_error)
-    log.info("Bot started (model=%s)", MODEL)
+    log.info(
+        "Bot started (model=%s, openai_key=%s, allowed_users=%s)",
+        MODEL,
+        "есть" if os.getenv("OPENAI_API_KEY") else "НЕТ",
+        sorted(ALLOWED_USERS) or "все",
+    )
     app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
 
