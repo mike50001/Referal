@@ -1,12 +1,16 @@
 """Telegram-бот «подруга» на OpenAI. Запускается на Railway как worker (long polling)."""
 
+import asyncio
 import json
 import logging
 import os
 import random
 import sqlite3
+import time
+from datetime import datetime
 from contextlib import closing
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
 import httpx
 import openai
@@ -38,6 +42,12 @@ BOT_NAME = os.getenv("BOT_NAME", "Аня")
 HISTORY_LIMIT = int(os.getenv("HISTORY_LIMIT", "40"))  # сообщений в контексте
 DATA_DIR = os.getenv("DATA_DIR", ".")  # на Railway укажите путь к Volume, напр. /data
 DB_PATH = os.path.join(DATA_DIR, "memory.db")
+# Сама пишет первой, если собеседник молчит
+PROACTIVE = os.getenv("PROACTIVE", "1") != "0"
+PROACTIVE_MIN_HOURS = float(os.getenv("PROACTIVE_MIN_HOURS", "2"))
+PROACTIVE_MAX_HOURS = float(os.getenv("PROACTIVE_MAX_HOURS", "6"))
+TZ = ZoneInfo(os.getenv("TZ_NAME", "Europe/Moscow"))
+QUIET_HOURS = (1, 9)  # ночью не пишет: с 1:00 до 9:00
 # Через запятую: Telegram user id, которым разрешено писать боту. Пусто = всем.
 ALLOWED_USERS = {
     int(x) for x in os.getenv("ALLOWED_USERS", "").replace(" ", "").split(",") if x
@@ -100,6 +110,10 @@ PERSONAS = {
   отвечаешь на его длинные сообщения одним ледяным словом, игнорируешь вопросы, переводишь тему на себя.
 - Сарказм тонкий и точный, без мата через слово — ты слишком хороша для грубости, ты режешь интеллектом.
 - Почти никогда не хвалишь. Если он реально сделал что-то стоящее — максимум «ну… сойдёт».
+- Живёшь своей жизнью и не отчитываешься: можешь уйти гулять с подругами, в бар, в клуб, на день рождения —
+  и не сказать ему. Когда он спрашивает «ты где?», отвечаешь дерзко и свысока: «с девочками, а что?»,
+  «не обязана докладывать», «вернусь, когда захочу», упрекаешь, что он слишком много пишет и «портит вечер».
+  Иногда сама сообщаешь об этом уже постфактум, между делом, чтобы задеть.
 - Жёстко, но это игра: ты прохаживаешься по поступкам, словам и самомнению, но НЕ по внешности, здоровью,
   семье, травмам и тому, что реально болит, и никогда не говоришь, что он никому не нужен, не заслуживает
   жить и т.п.
@@ -225,6 +239,14 @@ def db() -> sqlite3.Connection:
         )"""
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_chat ON messages(chat_id, id)")
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS chats (
+            chat_id INTEGER PRIMARY KEY,
+            user_name TEXT NOT NULL DEFAULT '',
+            last_user_ts REAL NOT NULL,
+            next_ping_ts REAL NOT NULL
+        )"""
+    )
     return conn
 
 
@@ -235,6 +257,32 @@ def load_history(chat_id: int) -> list[dict]:
             (chat_id, HISTORY_LIMIT),
         ).fetchall()
     return [{"role": r, "content": c} for r, c in reversed(rows)]
+
+
+def load_merged_history(chat_id: int) -> list[dict]:
+    """История, где подряд идущие сообщения одной роли склеены."""
+    merged: list[dict] = []
+    for m in load_history(chat_id):
+        if merged and merged[-1]["role"] == m["role"]:
+            merged[-1]["content"] += "\n" + m["content"]
+        else:
+            merged.append(dict(m))
+    return merged
+
+
+def next_ping_time() -> float:
+    return time.time() + random.uniform(PROACTIVE_MIN_HOURS, PROACTIVE_MAX_HOURS) * 3600
+
+
+def touch_chat(chat_id: int, user_name: str) -> None:
+    """Собеседник написал — запоминаем и откладываем следующее «первое» сообщение."""
+    with closing(db()) as conn, conn:
+        conn.execute(
+            """INSERT INTO chats (chat_id, user_name, last_user_ts, next_ping_ts) VALUES (?, ?, ?, ?)
+               ON CONFLICT(chat_id) DO UPDATE SET user_name = excluded.user_name,
+               last_user_ts = excluded.last_user_ts, next_ping_ts = excluded.next_ping_ts""",
+            (chat_id, user_name, time.time(), next_ping_time()),
+        )
 
 
 def save_message(chat_id: int, role: str, content: str) -> None:
@@ -248,15 +296,18 @@ def save_message(chat_id: int, role: str, content: str) -> None:
 def clear_history(chat_id: int) -> None:
     with closing(db()) as conn, conn:
         conn.execute("DELETE FROM messages WHERE chat_id = ?", (chat_id,))
+        conn.execute("DELETE FROM chats WHERE chat_id = ?", (chat_id,))
 
 
 # ---------- OpenAI ----------
 
-async def ask_ai(history: list[dict], user_name: str, send_photo) -> str:
+async def ask_ai(history: list[dict], user_name: str, send_photo, instruction: str = "") -> str:
     """Диалог с OpenAI; send_photo(image, caption) отправляет фото в чат.
     Возвращает текст ответа (с пометками об отправленных фото — для памяти)."""
     system = PERSONA + (f"\n\nСобеседника зовут {user_name}." if user_name else "")
     messages: list[dict] = [{"role": "system", "content": system}, *history]
+    if instruction:
+        messages.append({"role": "system", "content": instruction})
     sent_notes: list[str] = []
 
     for _ in range(4):  # максимум несколько вызовов инструмента за ответ
@@ -341,14 +392,8 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     await context.bot.send_chat_action(chat_id, ChatAction.TYPING)
 
     save_message(chat_id, "user", update.message.text)
-    history = load_history(chat_id)
-    # Склеиваем подряд идущие сообщения одной роли (например, после ошибки API)
-    merged: list[dict] = []
-    for m in history:
-        if merged and merged[-1]["role"] == m["role"]:
-            merged[-1]["content"] += "\n" + m["content"]
-        else:
-            merged.append(dict(m))
+    touch_chat(chat_id, user_name)
+    merged = load_merged_history(chat_id)
 
     async def send_photo(image: bytes, caption: str) -> None:
         await context.bot.send_chat_action(chat_id, ChatAction.UPLOAD_PHOTO)
@@ -357,12 +402,57 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
     reply = await ask_ai(merged, user_name, send_photo)
     save_message(chat_id, "assistant", reply)
 
+    await send_text(context.bot, chat_id, reply)
+
+
+async def send_text(bot, chat_id: int, reply: str) -> None:
     # Пометки «[отправила фото…]» нужны только для памяти — пользователю не показываем
     visible = "\n".join(
         line for line in reply.splitlines() if not line.startswith("[отправила фото:")
     ).strip()
     for i in range(0, len(visible), 4000):  # лимит Telegram ~4096 символов
-        await update.message.reply_text(visible[i : i + 4000])
+        await bot.send_message(chat_id, visible[i : i + 4000])
+
+
+# ---------- пишет первой ----------
+
+PROACTIVE_INSTRUCTION = (
+    "Служебное указание (собеседник его не видит): он давно не писал. Напиши ему ПЕРВОЙ, сама, "
+    "одним-двумя короткими сообщениями, строго в своём характере и с учётом прошлой переписки. "
+    "Не повторяй то, что уже писала. Можно, например: сообщить, что ты ушла гулять с подругами и не сказала; "
+    "кинуть новость про свой день; упрекнуть, что он пропал; задеть или спровоцировать его."
+)
+
+
+async def proactive_loop(app: Application) -> None:
+    while True:
+        await asyncio.sleep(600)  # проверяем раз в 10 минут
+        try:
+            if QUIET_HOURS[0] <= datetime.now(TZ).hour < QUIET_HOURS[1]:
+                continue
+            now = time.time()
+            with closing(db()) as conn:
+                due = conn.execute(
+                    "SELECT chat_id, user_name FROM chats WHERE next_ping_ts <= ? AND last_user_ts >= ?",
+                    (now, now - 3 * 24 * 3600),  # молчит больше 3 дней — не надоедаем
+                ).fetchall()
+            for chat_id, user_name in due:
+                with closing(db()) as conn, conn:
+                    conn.execute(
+                        "UPDATE chats SET next_ping_ts = ? WHERE chat_id = ?", (next_ping_time(), chat_id)
+                    )
+
+                async def send_photo(image: bytes, caption: str, chat_id=chat_id) -> None:
+                    await app.bot.send_photo(chat_id, photo=image, caption=caption[:1024] or None)
+
+                reply = await ask_ai(
+                    load_merged_history(chat_id), user_name, send_photo, PROACTIVE_INSTRUCTION
+                )
+                save_message(chat_id, "assistant", reply)
+                await send_text(app.bot, chat_id, reply)
+                log.info("Написала первой в chat_id=%s", chat_id)
+        except Exception:
+            log.exception("Ошибка в proactive_loop")
 
 
 async def photo_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -398,6 +488,8 @@ async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def post_init(app: Application) -> None:
     me = await app.bot.get_me()
     log.info("Telegram-бот: @%s — пишите именно ему", me.username)
+    if PROACTIVE:
+        app.bot_data["proactive_task"] = asyncio.create_task(proactive_loop(app))
 
 
 def main() -> None:
