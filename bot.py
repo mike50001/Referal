@@ -367,6 +367,15 @@ def allowed(update: Update) -> bool:
     return ok
 
 
+BITCH_GREETINGS = [
+    "О, явился. Я уж думала, ты наконец нашёл себе занятие поинтереснее меня. Ошиблась, как обычно 🙄",
+    "Ну привет. У тебя ровно одно сообщение, чтобы я не пожалела, что вообще открыла этот чат. Время пошло ⏳",
+    "Смотрите-ка, кто вспомнил, что у него есть девушка. Говори быстрее, меня девочки ждут 💅",
+    "Ты опять? Ладно, давай. Только без скучных историй про работу, я и так знаю, что там ничего интересного 😒",
+    "Мм, привет. Сразу вопрос: чем ты сегодня занимался таким, что мне должно быть не стыдно за тебя? Жду 🙂",
+]
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not allowed(update):
         return
@@ -376,7 +385,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "hard": f"Ну привет{', ' + name if name else ''}. Я {BOT_NAME}. Собирайся, едем в ТЦ — "
         "мне срочно нужна сумка Coach Tabby, чёрная, в ЦУМе. И к ней лодочки Aldo 37-го размера. Ты же платишь, да? 💅",
         "soft": f"{hi}, зай 💛 Я соскучилась! Как твой день прошёл?",
-        "bitch": "А, это ты. Ну давай, удиви меня. Хотя кого я обманываю 🙄",
+        "bitch": random.choice(BITCH_GREETINGS),
         "tease": f"О, явился 😏 {hi}. Спорим, ты сейчас не придумаешь, чем меня удивить? Давай, жги 🔥",
     }
     await update.message.reply_text(greetings.get(BOT_STYLE, greetings["bitch"]))
@@ -386,7 +395,11 @@ async def reset(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not allowed(update):
         return
     clear_history(update.effective_chat.id)
-    await update.message.reply_text("Всё, начинаем с чистого листа ✨ Привет!")
+    await update.message.reply_text(
+        "Стёрла всё. Не то чтобы там было что-то, о чём стоит жалеть 🙄"
+        if BOT_STYLE == "bitch"
+        else "Всё, начинаем с чистого листа ✨ Привет!"
+    )
 
 
 async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
