@@ -105,8 +105,16 @@ def main() -> None:
         print("Открытых позиций сейчас нет.")
 
     # --- баланс ---
-    bal = ex.get_balance_usdt()
-    print(f"Доступный баланс: {bal:.2f} USDT")
+    wallet = avail = None
+    for b in client.futures_account_balance():
+        if b["asset"] == "USDT":
+            wallet = float(b["balance"])          # полный баланс кошелька
+            avail = float(b["availableBalance"])  # доступно (без заблок. маржи)
+            break
+    if wallet is not None:
+        print(f"Баланс кошелька: {wallet:.2f} USDT (доступно {avail:.2f})")
+    else:
+        print("Баланс недоступен.")
     print("=" * 60)
 
 
